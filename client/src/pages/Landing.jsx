@@ -7,76 +7,87 @@ function Landing() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  // If already logged in go to dashboard
   useEffect(() => {
     if (user) navigate('/dashboard')
   }, [user])
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] flex flex-col">
+    <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: '#080808' }}>
 
-      {/* Hero Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pt-16 pb-8 text-center">
+      {/* Background grid effect */}
+      <div className="absolute inset-0 opacity-5" style={{
+        backgroundImage: `linear-gradient(#CCFF00 1px, transparent 1px), linear-gradient(90deg, #CCFF00 1px, transparent 1px)`,
+        backgroundSize: '40px 40px'
+      }}/>
 
-        {/* Logo */}
-        <div className="mb-8">
-          <h1 className="text-6xl font-black text-gray-900 leading-none tracking-tight">
-            Run<span className="text-[#AAEE00]">Zone</span>
-          </h1>
-          <p className="text-gray-500 mt-2 text-lg font-medium">Own your city. One run at a time.</p>
+      {/* Top bar */}
+      <div className="relative z-10 flex justify-between items-center px-6 pt-12">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 border-2 flex items-center justify-center" style={{ borderColor: '#CCFF00' }}>
+            <span className="text-sm font-black" style={{ color: '#CCFF00' }}>Z</span>
+          </div>
+          <span className="font-black text-white text-lg tracking-wider">RUNZONE</span>
+        </div>
+        <Link to="/login" className="text-sm font-bold" style={{ color: '#CCFF00' }}>
+          SIGN IN
+        </Link>
+      </div>
+
+      {/* Hero */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 py-12">
+
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 mb-6 self-start">
+          <div className="w-2 h-2 rounded-full live-pulse" style={{ background: '#CCFF00' }}/>
+          <span className="label-upper" style={{ color: '#CCFF00' }}>GPS Territory Game</span>
         </div>
 
-        {/* Animated stats preview */}
-        <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-lg mb-8 border border-gray-100">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-gray-400 text-sm font-medium">Your Territory</span>
-            <span className="text-xs bg-[#AAEE00] text-black px-2 py-1 rounded-full font-bold">LIVE</span>
-          </div>
-          <div className="text-5xl font-black text-gray-900 mb-1">247</div>
-          <div className="text-gray-400 text-sm mb-4">tiles owned</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-[#f5f5f0] rounded-2xl p-3">
-              <div className="text-2xl font-bold text-gray-900">42.5</div>
-              <div className="text-gray-400 text-xs">km total</div>
-            </div>
-            <div className="bg-[#f5f5f0] rounded-2xl p-3">
-              <div className="text-2xl font-bold text-gray-900">#3</div>
-              <div className="text-gray-400 text-xs">city rank</div>
-            </div>
-          </div>
-        </div>
+        {/* Main headline */}
+        <h1 className="text-6xl font-black leading-none mb-4 uppercase tracking-tight">
+          <span className="text-white">CAPTURE</span><br />
+          <span className="text-white">YOUR</span><br />
+          <span className="lime-text-glow" style={{ color: '#CCFF00' }}>CITY.</span>
+        </h1>
 
-        {/* Feature pills */}
-        <div className="flex gap-2 flex-wrap justify-center mb-10">
-          {['GPS Tracking', 'Capture Territory', 'Beat Rivals', 'Leaderboard'].map(tag => (
-            <span key={tag} className="bg-white border border-gray-200 text-gray-600 text-sm px-3 py-1 rounded-full font-medium">
-              {tag}
-            </span>
-          ))}
+        <p className="text-sm mb-10 max-w-xs leading-relaxed" style={{ color: '#666' }}>
+          The GPS-based territory game that turns every run into a land grab. Own your streets. Defend your zone.
+        </p>
+
+        {/* Stats preview */}
+        <div className="flex gap-4 mb-10">
+          <div className="flex-1 card text-center">
+            <div className="text-2xl font-black stat-number">2.4K</div>
+            <div className="label-upper mt-1">Operatives</div>
+          </div>
+          <div className="flex-1 card text-center">
+            <div className="text-2xl font-black stat-number">18K</div>
+            <div className="label-upper mt-1">Zones Claimed</div>
+          </div>
+          <div className="flex-1 card text-center">
+            <div className="text-2xl font-black stat-number">94K</div>
+            <div className="label-upper mt-1">KM Run</div>
+          </div>
         </div>
 
         {/* CTA Buttons */}
-        <div className="w-full max-w-sm flex flex-col gap-3">
-          <Link
-            to="/signup"
-            className="w-full bg-[#AAEE00] text-black font-bold py-4 rounded-2xl text-center text-lg hover:bg-[#99dd00] transition-colors"
-          >
-            Join Us
+        <div className="flex flex-col gap-3">
+          <Link to="/signup" className="btn-lime text-center block">
+            GET STARTED ⚡
           </Link>
-          <Link
-            to="/login"
-            className="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-4 rounded-2xl text-center text-lg hover:border-gray-300 transition-colors"
-          >
-            Log In
+          <Link to="/login" className="btn-ghost text-center block">
+            SIGN IN
           </Link>
         </div>
 
+        {/* Fine print */}
+        <p className="text-center text-xs mt-6" style={{ color: '#444' }}>
+          By continuing, you agree to dominate your local leaderboards.
+        </p>
+
       </div>
 
-      {/* Bottom text */}
-      <div className="text-center pb-8 text-gray-400 text-sm">
-        Turn your runs into digital territory
-      </div>
+      {/* Bottom glow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-32 rounded-full blur-3xl opacity-20" style={{ background: '#CCFF00' }}/>
 
     </div>
   )
