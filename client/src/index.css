@@ -1,38 +1,157 @@
 @import "tailwindcss";
 
-/* Custom global styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+:root {
+  --lime: #CCFF00;
+  --lime-dim: #aadd00;
+  --bg: #080808;
+  --bg-card: #111111;
+  --bg-card2: #1a1a1a;
+  --border: #222222;
+  --border-bright: #333333;
+  --text: #ffffff;
+  --text-muted: #666666;
+  --text-dim: #444444;
+  --red: #ff4444;
+  --orange: #ff8800;
+}
+
 body {
-  background-color: #0a0a0a;
-  color: #ffffff;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+/* Lime glow effect */
+.lime-glow {
+  box-shadow: 0 0 20px rgba(204, 255, 0, 0.15);
 }
 
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
+.lime-text-glow {
+  text-shadow: 0 0 20px rgba(204, 255, 0, 0.4);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
+/* Animated pulse for live indicators */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.live-pulse {
+  animation: livePulse 1.5s ease-in-out infinite;
 }
 
-/* Smooth transitions globally */
-* {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+/* Scan line effect for tactical feel */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* Card styles */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.card-dark {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+/* Lime button */
+.btn-lime {
+  background: var(--lime);
+  color: #000000;
+  font-weight: 800;
+  border-radius: 12px;
+  padding: 14px 24px;
+  width: 100%;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-lime:hover {
+  background: var(--lime-dim);
+  transform: translateY(-1px);
+}
+
+.btn-lime:active {
+  transform: translateY(0px);
+}
+
+/* Ghost button */
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 14px 24px;
+  width: 100%;
+  font-size: 15px;
+  border: 1px solid var(--border-bright);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+/* Input styles */
+.input-dark {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-dark::placeholder {
+  color: var(--text-dim);
+}
+
+.input-dark:focus {
+  border-color: var(--lime);
+}
+
+/* Stat number style */
+.stat-number {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  color: var(--lime);
+}
+
+/* Uppercase label */
+.label-upper {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
