@@ -3,26 +3,29 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getRunStats, getRunHistory } from '../api/runs'
 import { getMyTiles } from '../api/territory'
-import StatCard from '../components/StatCard'
+import { getLeaderboard } from '../api/leaderboard'
 
 function Dashboard() {
   const { user } = useAuth()
   const [stats, setStats] = useState(null)
   const [tiles, setTiles] = useState(null)
   const [recentRuns, setRecentRuns] = useState([])
+  const [topRunners, setTopRunners] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [statsRes, tilesRes, runsRes] = await Promise.all([
+        const [statsRes, tilesRes, runsRes, leaderboardRes] = await Promise.all([
           getRunStats(),
           getMyTiles(),
-          getRunHistory()
+          getRunHistory(),
+          getLeaderboard()
         ])
         setStats(statsRes.data)
         setTiles(tilesRes.data)
         setRecentRuns(runsRes.data.runs.slice(0, 3))
+        setTopRunners(leaderboardRes.data.leaderboard.slice(0, 3))
       } catch (err) {
         console.error('Dashboard fetch error:', err)
       } finally {
@@ -34,125 +37,164 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#f5f5f0]">
-        <div className="text-[#AAEE00] text-xl animate-pulse">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080808' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 rounded-full border-t-transparent animate-spin" style={{ borderColor: '#CCFF00', borderTopColor: 'transparent' }}/>
+          <span className="label-upper" style={{ color: '#CCFF00' }}>Syncing data...</span>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] pb-24">
+    <div className="min-h-screen pb-24" style={{ background: '#080808' }}>
 
       {/* Header */}
-      <div className="px-6 pt-12 pb-6">
-        <p className="text-gray-400 text-sm font-medium">Good morning,</p>
-        <h1 className="text-3xl font-black text-gray-900">{user?.username} 👋</h1>
+      <div className="px-6 pt-12 pb-4 flex justify-between items-start">
+        <div>
+          <div className="label-upper mb-1" style={{ color: '#CCFF00' }}>Operative</div>
+          <h1 className="text-2xl font-black text-white uppercase tracking-wide">
+            {user?.username}
+          </h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full live-pulse" style={{ background: '#CCFF00' }}/>
+          <span className="label-upper" style={{ color: '#CCFF00' }}>SCORE</span>
+          <span className="font-black text-white">{(tiles?.total_tiles || 0) * 34}</span>
+        </div>
       </div>
 
-      {/* Territory Hero Card */}
-      <div className="px-6 mb-6">
-        <div className="bg-gray-900 rounded-3xl p-6 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#AAEE00] rounded-full opacity-10 -mr-8 -mt-8"/>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#AAEE00] rounded-full opacity-10 -ml-8 -mb-8"/>
-          <p className="text-gray-400 text-sm font-medium mb-1">Your Territory</p>
-          <div className="text-6xl font-black text-white mb-1">
-            {tiles?.total_tiles || 0}
+      {/* Global Domination Hero Card */}
+      <div className="px-6 mb-4">
+        <div className="rounded-2xl p-6 relative overflow-hidden" style={{
+          background: 'linear-gradient(135deg, #111 0%, #1a1a1a 100%)',
+          border: '1px solid #222'
+        }}>
+          {/* Glow */}
+          <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-10" style={{ background: '#CCFF00' }}/>
+
+          <div className="label-upper mb-1" style={{ color: '#CCFF00' }}>Global Domination</div>
+          <div className="text-6xl font-black lime-text-glow mb-0" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
+            {((tiles?.total_tiles || 0) * 0.0057).toFixed(1)}
           </div>
-          <p className="text-gray-400 text-sm">tiles owned</p>
+          <div className="text-white font-bold text-lg mb-1">SQ KM OWNED</div>
+          <div className="text-xs mb-4" style={{ color: '#666' }}>
+            Top {Math.max(1, 100 - (tiles?.total_tiles || 0))}% of Sector-7 Zone
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl p-3 text-center" style={{ background: '#0e0e0e' }}>
+              <div className="text-xl font-black" style={{ color: '#CCFF00' }}>
+                {stats?.total_distance_km || '0.00'}
+              </div>
+              <div className="label-upper mt-1">KM</div>
+            </div>
+            <div className="rounded-xl p-3 text-center" style={{ background: '#0e0e0e' }}>
+              <div className="text-xl font-black text-white">
+                {stats?.total_runs || 0}
+              </div>
+              <div className="label-upper mt-1">RUNS</div>
+            </div>
+            <div className="rounded-xl p-3 text-center" style={{ background: '#0e0e0e' }}>
+              <div className="text-xl font-black" style={{ color: '#CCFF00' }}>
+                {tiles?.total_tiles || 0}
+              </div>
+              <div className="label-upper mt-1">TILES</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Daily Intel */}
+      {recentRuns.length > 0 && (
+        <div className="px-6 mb-4">
+          <div className="flex justify-between items-center mb-3">
+            <span className="label-upper" style={{ color: '#CCFF00' }}>Daily Intel</span>
+          </div>
+          <div className="card">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-black" style={{ color: '#CCFF00' }}>
+                  {(recentRuns[0]?.distance_meters / 1000).toFixed(1)}
+                </div>
+                <div className="label-upper mt-1">DIST KM</div>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white">
+                  {Math.floor((recentRuns[0]?.duration_seconds || 0) / 60)}:{String((recentRuns[0]?.duration_seconds || 0) % 60).padStart(2, '0')}
+                </div>
+                <div className="label-upper mt-1">TIME</div>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-white">
+                  {recentRuns[0]?.tiles_captured || 0}
+                </div>
+                <div className="label-upper mt-1">TILES</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Zone Ops - Start Run CTA */}
+      <div className="px-6 mb-4">
+        <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>Zone Ops</div>
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="inline-block px-2 py-1 rounded text-xs font-bold mb-2" style={{ background: 'rgba(204,255,0,0.1)', color: '#CCFF00' }}>
+                ACTIVE
+              </div>
+              <div className="text-white font-black text-lg">Capture the Streets</div>
+              <div className="text-sm mt-1" style={{ color: '#666' }}>
+                Run and claim new territory tiles
+              </div>
+            </div>
+          </div>
           <Link
-            to="/territory"
-            className="mt-4 inline-block bg-[#AAEE00] text-black font-bold px-4 py-2 rounded-xl text-sm"
+            to="/run"
+            className="btn-lime text-center block"
           >
-            View Map →
+            ⚡ INITIALIZE RUN
           </Link>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="px-6 mb-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-3">Your Stats</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            label="Total Distance"
-            value={stats?.total_distance_km || '0.00'}
-            unit="km"
-            icon="🏃"
-          />
-          <StatCard
-            label="Total Runs"
-            value={stats?.total_runs || 0}
-            unit="runs"
-            icon="⚡"
-          />
-          <StatCard
-            label="Tiles Owned"
-            value={tiles?.total_tiles || 0}
-            unit="tiles"
-            icon="🗺️"
-          />
-          <StatCard
-            label="Active Days"
-            value={stats?.total_runs || 0}
-            unit="days"
-            icon="🔥"
-          />
-        </div>
-      </div>
-
-      {/* Recent Runs */}
-      <div className="px-6 mb-6">
+      {/* Top Operatives */}
+      <div className="px-6 mb-4">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-bold text-gray-900">Recent Runs</h2>
-          <Link to="/profile" className="text-[#AAEE00] text-sm font-bold">See all</Link>
+          <span className="label-upper" style={{ color: '#CCFF00' }}>Top Operatives</span>
+          <Link to="/leaderboard" className="text-xs font-bold" style={{ color: '#CCFF00' }}>VIEW ALL</Link>
         </div>
 
-        {recentRuns.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center border border-gray-100">
+        {topRunners.length === 0 ? (
+          <div className="card text-center py-8">
             <div className="text-4xl mb-2">🏃</div>
-            <p className="text-gray-400 text-sm">No runs yet. Start your first run!</p>
-            <Link
-              to="/run"
-              className="mt-3 inline-block bg-[#AAEE00] text-black font-bold px-4 py-2 rounded-xl text-sm"
-            >
-              Start Running
-            </Link>
+            <p className="text-sm" style={{ color: '#666' }}>No operatives yet. Be the first!</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {recentRuns.map((run) => (
-              <div key={run.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-gray-900">
-                      {(run.distance_meters / 1000).toFixed(2)} km
-                    </p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      {new Date(run.created_at).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-[#AAEE00]">+{run.tiles_captured}</p>
-                    <p className="text-gray-400 text-xs">tiles</p>
-                  </div>
+          <div className="flex flex-col gap-2">
+            {topRunners.map((runner) => (
+              <div key={runner.id} className="card flex items-center gap-4">
+                <div className="text-lg font-black w-8 text-center" style={{ color: '#CCFF00' }}>
+                  {String(runner.rank).padStart(2, '0')}
+                </div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-black text-sm" style={{ background: '#CCFF00' }}>
+                  {runner.username.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-white text-sm uppercase">{runner.username}</div>
+                  <div className="label-upper">{runner.total_distance_km} KM Total</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-black text-white">{runner.total_tiles}</div>
+                  <div className="label-upper">tiles</div>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
-
-      {/* Start Run CTA */}
-      <div className="px-6">
-        <Link
-          to="/run"
-          className="w-full bg-[#AAEE00] text-black font-bold py-4 rounded-2xl text-center text-lg block hover:bg-[#99dd00] transition-colors"
-        >
-          🏃 Start a Run
-        </Link>
       </div>
 
     </div>
