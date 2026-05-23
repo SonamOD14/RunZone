@@ -1,18 +1,35 @@
 function StatCard({ label, value, unit, icon }) {
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-gray-400 text-sm font-medium">{label}</span>
-        {icon && (
-          <span className="text-2xl">{icon}</span>
-        )}
+    <div
+      className="rounded-2xl p-4 relative overflow-hidden"
+      style={{ background: '#111', border: '1px solid #1f1f1f' }}
+    >
+      {/* Top row */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="label-upper">{label}</span>
+        {icon && <span className="text-xl">{icon}</span>}
       </div>
+
+      {/* Value */}
       <div className="flex items-end gap-1">
-        <span className="text-3xl font-bold text-gray-900">{value}</span>
+        <span
+          className="text-3xl font-black"
+          style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}
+        >
+          {value}
+        </span>
         {unit && (
-          <span className="text-gray-400 text-sm mb-1">{unit}</span>
+          <span className="text-sm font-bold mb-1" style={{ color: '#444' }}>
+            {unit}
+          </span>
         )}
       </div>
+
+      {/* Bottom glow line */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-px"
+        style={{ background: 'linear-gradient(90deg, transparent, #CCFF00, transparent)', opacity: 0.3 }}
+      />
     </div>
   )
 }
