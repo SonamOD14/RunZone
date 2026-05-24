@@ -26,6 +26,7 @@ function StatCard({ label, value, unit, icon }) {
       </div>
 
       {/* Bottom glow line */}
+      
       <div
         className="absolute bottom-0 left-0 right-0 h-px"
         style={{ background: 'linear-gradient(90deg, transparent, #CCFF00, transparent)', opacity: 0.3 }}
