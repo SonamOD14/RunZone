@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { startRun, endRun } from '../api/runs'
 
-// Calculate distance between two GPS points in meters
 function getDistance(lat1, lng1, lat2, lng2) {
   const R = 6371000
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -15,11 +14,11 @@ function getDistance(lat1, lng1, lat2, lng2) {
   return R * c
 }
 
-// Format seconds into mm:ss
 function formatTime(seconds) {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0')
-  const s = (seconds % 60).toString().padStart(2, '0')
-  return `${m}:${s}`
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 function LiveRun() {
@@ -33,12 +32,13 @@ function LiveRun() {
   const [currentPos, setCurrentPos] = useState(null)
   const [error, setError] = useState('')
   const [finishing, setFinishing] = useState(false)
+  const [speed, setSpeed] = useState(0)
 
   const watchId = useRef(null)
   const timerRef = useRef(null)
   const lastPos = useRef(null)
+  const lastTime = useRef(null)
 
-  // Start GPS tracking
   const startGPS = () => {
     if (!navigator.geolocation) {
       setError('GPS not supported on this device.')
@@ -48,22 +48,22 @@ function LiveRun() {
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
         setCurrentPos({ lat, lng })
+        const now = Date.now()
 
         if (lastPos.current) {
-          const dist = getDistance(
-            lastPos.current.lat,
-            lastPos.current.lng,
-            lat,
-            lng
-          )
-          // Only count movement over 5 meters to avoid GPS noise
+          const dist = getDistance(lastPos.current.lat, lastPos.current.lng, lat, lng)
           if (dist > 5) {
+            const timeDiff = (now - lastTime.current) / 1000
+            const currentSpeed = (dist / timeDiff) * 3.6
+            setSpeed(currentSpeed.toFixed(1))
             setDistance(prev => prev + dist)
             setCoordinates(prev => [...prev, { lat, lng }])
             lastPos.current = { lat, lng }
+            lastTime.current = now
           }
         } else {
           lastPos.current = { lat, lng }
+          lastTime.current = now
           setCoordinates([{ lat, lng }])
         }
       },
@@ -72,7 +72,6 @@ function LiveRun() {
     )
   }
 
-  // Stop GPS tracking
   const stopGPS = () => {
     if (watchId.current) {
       navigator.geolocation.clearWatch(watchId.current)
@@ -80,14 +79,12 @@ function LiveRun() {
     }
   }
 
-  // Start timer
   const startTimer = () => {
     timerRef.current = setInterval(() => {
       setDuration(prev => prev + 1)
     }, 1000)
   }
 
-  // Stop timer
   const stopTimer = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current)
@@ -95,7 +92,6 @@ function LiveRun() {
     }
   }
 
-  // Handle start run
   const handleStart = async () => {
     try {
       const res = await startRun()
@@ -108,21 +104,18 @@ function LiveRun() {
     }
   }
 
-  // Handle pause
   const handlePause = () => {
     setIsPaused(true)
     stopGPS()
     stopTimer()
   }
 
-  // Handle resume
   const handleResume = () => {
     setIsPaused(false)
     startGPS()
     startTimer()
   }
 
-  // Handle finish run
   const handleFinish = async () => {
     setFinishing(true)
     stopGPS()
@@ -141,7 +134,6 @@ function LiveRun() {
     }
   }
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopGPS()
@@ -149,105 +141,128 @@ function LiveRun() {
     }
   }, [])
 
+  const pace = distance > 0 && duration > 0
+    ? ((duration / 60) / (distance / 1000)).toFixed(1)
+    : '0.0'
+
   return (
-    <div className="min-h-screen bg-[#f5f5f0] flex flex-col pb-24">
+    <div className="min-h-screen flex flex-col pb-24" style={{ background: '#080808' }}>
 
       {/* Header */}
-      <div className="px-6 pt-12 pb-6">
-        <h1 className="text-3xl font-black text-gray-900">Live Run</h1>
-        <p className="text-gray-400 text-sm mt-1">GPS tracking your territory</p>
+      <div className="px-6 pt-12 pb-4 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 border-2 flex items-center justify-center" style={{ borderColor: '#CCFF00' }}>
+            <span className="text-xs font-black" style={{ color: '#CCFF00' }}>Z</span>
+          </div>
+          <span className="font-black text-white tracking-wider">RUNZONE</span>
+        </div>
+        {isRunning && (
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full" style={{ background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)' }}>
+            <div className="w-2 h-2 rounded-full live-pulse" style={{ background: '#CCFF00' }}/>
+            <span className="label-upper" style={{ color: '#CCFF00' }}>LIVE GPS</span>
+          </div>
+        )}
       </div>
 
       {/* Error */}
       {error && (
-        <div className="mx-6 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-2xl mb-4">
+        <div className="mx-6 mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.3)', color: '#ff4444' }}>
           {error}
         </div>
       )}
 
-      {/* Stats Display */}
+      {/* Main Stats */}
+      <div className="px-6 mb-6 text-center">
+        <div className="label-upper mb-2" style={{ color: '#666' }}>Duration</div>
+        <div className="text-7xl font-black text-white mb-6" style={{ fontFamily: 'Space Grotesk', letterSpacing: '-2px' }}>
+          {formatTime(duration)}
+        </div>
+
+        <div className="label-upper mb-1" style={{ color: '#CCFF00' }}>Total Distance</div>
+        <div className="text-6xl font-black lime-text-glow mb-1" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
+          {(distance / 1000).toFixed(2)}
+        </div>
+        <div className="text-white font-bold text-xl">km</div>
+      </div>
+
+      {/* Secondary Stats */}
       <div className="px-6 mb-6">
-        <div className="bg-gray-900 rounded-3xl p-8 text-white text-center">
-          {/* Distance */}
-          <div className="mb-6">
-            <div className="text-6xl font-black text-white">
-              {(distance / 1000).toFixed(2)}
-            </div>
-            <div className="text-gray-400 text-lg font-medium">kilometers</div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="card text-center">
+            <div className="text-xl font-black text-white">{speed}</div>
+            <div className="label-upper mt-1">km/h</div>
           </div>
-
-          {/* Time and GPS */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/10 rounded-2xl p-4">
-              <div className="text-2xl font-bold">{formatTime(duration)}</div>
-              <div className="text-gray-400 text-xs mt-1">Duration</div>
-            </div>
-            <div className="bg-white/10 rounded-2xl p-4">
-              <div className="text-2xl font-bold">{coordinates.length}</div>
-              <div className="text-gray-400 text-xs mt-1">Points tracked</div>
-            </div>
+          <div className="card text-center">
+            <div className="text-xl font-black text-white">{pace}</div>
+            <div className="label-upper mt-1">min/km</div>
           </div>
-
-          {/* GPS Status */}
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${currentPos ? 'bg-[#AAEE00]' : 'bg-gray-500'} ${isRunning && !isPaused ? 'animate-pulse' : ''}`}/>
-            <span className="text-gray-400 text-xs">
-              {currentPos ? 'GPS locked' : 'Waiting for GPS...'}
-            </span>
+          <div className="card text-center">
+            <div className="text-xl font-black text-white">{coordinates.length}</div>
+            <div className="label-upper mt-1">points</div>
           </div>
         </div>
       </div>
 
-      {/* Current Position */}
-      {currentPos && (
-        <div className="px-6 mb-6">
-          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <p className="text-gray-400 text-xs font-medium mb-1">Current Position</p>
-            <p className="text-gray-900 text-sm font-mono">
-              {currentPos.lat.toFixed(6)}, {currentPos.lng.toFixed(6)}
-            </p>
+      {/* GPS Status */}
+      <div className="px-6 mb-6">
+        <div className="card flex items-center gap-3">
+          <div className={`w-3 h-3 rounded-full ${currentPos ? 'live-pulse' : ''}`} style={{ background: currentPos ? '#CCFF00' : '#333' }}/>
+          <div>
+            <div className="text-sm font-bold text-white">
+              {currentPos ? 'GPS Signal Locked' : 'Acquiring GPS...'}
+            </div>
+            {currentPos && (
+              <div className="label-upper mt-0.5">
+                {currentPos.lat.toFixed(5)}, {currentPos.lng.toFixed(5)}
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Controls */}
-      <div className="px-6">
+      <div className="px-6 flex-1 flex flex-col justify-end">
         {!isRunning ? (
-          // Start button
           <button
             onClick={handleStart}
-            className="w-full bg-[#AAEE00] text-black font-black py-6 rounded-3xl text-2xl hover:bg-[#99dd00] transition-colors shadow-lg"
+            className="btn-lime py-6 text-xl tracking-widest"
           >
-            START
+            ⚡ INITIALIZE RUN
           </button>
         ) : (
-          <div className="flex flex-col gap-3">
-            {!isPaused ? (
-              // Pause button
-              <button
-                onClick={handlePause}
-                className="w-full bg-yellow-400 text-black font-black py-5 rounded-3xl text-xl hover:bg-yellow-300 transition-colors"
-              >
-                PAUSE
-              </button>
-            ) : (
-              // Resume button
-              <button
-                onClick={handleResume}
-                className="w-full bg-[#AAEE00] text-black font-black py-5 rounded-3xl text-xl hover:bg-[#99dd00] transition-colors"
-              >
-                RESUME
-              </button>
-            )}
+          <div className="flex flex-col items-center gap-4">
+
+            {/* Big pause/resume circle button */}
+            <button
+              onClick={isPaused ? handleResume : handlePause}
+              className="w-28 h-28 rounded-full flex items-center justify-center lime-glow transition-all"
+              style={{ background: '#CCFF00' }}
+            >
+              {isPaused ? (
+                <svg viewBox="0 0 24 24" className="w-12 h-12" fill="#000">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="w-12 h-12" fill="#000">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                </svg>
+              )}
+            </button>
+
+            <div className="label-upper" style={{ color: '#666' }}>
+              {isPaused ? 'TAP TO RESUME' : 'TAP TO PAUSE'}
+            </div>
 
             {/* Finish button */}
             <button
               onClick={handleFinish}
               disabled={finishing || coordinates.length === 0}
-              className="w-full bg-gray-900 text-white font-black py-5 rounded-3xl text-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
+              className="btn-ghost py-4"
+              style={{ opacity: finishing || coordinates.length === 0 ? 0.4 : 1 }}
             >
-              {finishing ? 'Saving...' : 'FINISH RUN'}
+              {finishing ? 'SAVING MISSION...' : 'END MISSION'}
             </button>
+
           </div>
         )}
       </div>
