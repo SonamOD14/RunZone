@@ -1,23 +1,29 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 import { getRunHistory } from '../api/runs'
 import { getMyTiles } from '../api/territory'
+import { getMyRank } from '../api/leaderboard'
 
 function Profile() {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const [runs, setRuns] = useState([])
   const [tiles, setTiles] = useState(null)
+  const [rank, setRank] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [runsRes, tilesRes] = await Promise.all([
+        const [runsRes, tilesRes, rankRes] = await Promise.all([
           getRunHistory(),
-          getMyTiles()
+          getMyTiles(),
+          getMyRank()
         ])
         setRuns(runsRes.data.runs)
         setTiles(tilesRes.data)
+        setRank(rankRes.data.rank)
       } catch (err) {
         console.error('Profile fetch error:', err)
       } finally {
@@ -27,93 +33,163 @@ function Profile() {
     fetchData()
   }, [])
 
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
+
   const totalDistance = runs.reduce((sum, run) => sum + (run.distance_meters || 0), 0)
+
+  const honors = [
+    { icon: '🎯', label: 'First Capture', earned: runs.length > 0 },
+    { icon: '🌙', label: 'Night Owl', earned: false },
+    { icon: '⚡', label: '50km Club', earned: totalDistance >= 50000 },
+    { icon: '🗺️', label: 'Sector 7', earned: (tiles?.total_tiles || 0) >= 10 },
+  ]
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#f5f5f0]">
-        <div className="text-[#AAEE00] text-xl animate-pulse">Loading profile...</div>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080808' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: '#CCFF00', borderTopColor: 'transparent' }}/>
+          <span className="label-upper" style={{ color: '#CCFF00' }}>Loading operative data...</span>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] pb-24">
+    <div className="min-h-screen pb-24" style={{ background: '#080808' }}>
 
       {/* Header */}
-      <div className="px-6 pt-12 pb-6">
-        <h1 className="text-3xl font-black text-gray-900">Profile</h1>
+      <div className="px-6 pt-12 pb-4 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 border-2 flex items-center justify-center" style={{ borderColor: '#CCFF00' }}>
+            <span className="text-xs font-black" style={{ color: '#CCFF00' }}>Z</span>
+          </div>
+          <span className="font-black text-white tracking-wider">RUNZONE</span>
+        </div>
+        <button style={{ color: '#666' }}>
+          <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
+            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+          </svg>
+        </button>
       </div>
 
-      {/* User Card */}
-      <div className="px-6 mb-6">
-        <div className="bg-gray-900 rounded-3xl p-6 text-white">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-[#AAEE00] rounded-full flex items-center justify-center">
-              <span className="text-2xl font-black text-black">
-                {user?.username?.charAt(0).toUpperCase()}
-              </span>
+      {/* Operative Card */}
+      <div className="px-6 mb-4">
+        <div className="rounded-2xl p-6 relative overflow-hidden" style={{
+          background: 'linear-gradient(135deg, #111 0%, #1a1a1a 100%)',
+          border: '1px solid #222'
+        }}>
+          <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10" style={{ background: '#CCFF00' }}/>
+
+          <div className="flex items-center gap-4 mb-4">
+            {/* Avatar */}
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl flex-shrink-0 lime-glow"
+              style={{ background: '#CCFF00', color: '#000' }}
+            >
+              {user?.username?.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-2xl font-black">{user?.username}</h2>
-              <p className="text-gray-400 text-sm">{user?.email}</p>
+              <div className="text-2xl font-black text-white uppercase tracking-wide">
+                {user?.username}
+              </div>
+              <div
+                className="inline-block px-2 py-0.5 rounded text-xs font-black mt-1"
+                style={{ background: 'rgba(204,255,0,0.1)', color: '#CCFF00', border: '1px solid rgba(204,255,0,0.2)' }}
+              >
+                ⚡ ELITE OPERATIVE
+              </div>
+            </div>
+          </div>
+
+          {/* Big stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl p-4" style={{ background: '#0e0e0e' }}>
+              <div className="text-3xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                {(totalDistance / 1000).toFixed(0)}
+              </div>
+              <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Total Distance KM</div>
+            </div>
+            <div className="rounded-xl p-4" style={{ background: '#0e0e0e' }}>
+              <div className="text-3xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                #{rank || '--'}
+              </div>
+              <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Global Rank</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="px-6 mb-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-3">Your Stats</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
-            <div className="text-2xl font-black text-gray-900">{runs.length}</div>
-            <div className="text-gray-400 text-xs mt-1">Total Runs</div>
+      {/* Stats Grid */}
+      <div className="px-6 mb-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card">
+            <div className="text-3xl font-black text-white">{tiles?.total_tiles || 0}</div>
+            <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Territories</div>
           </div>
-          <div className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
-            <div className="text-2xl font-black text-gray-900">
-              {(totalDistance / 1000).toFixed(1)}
-            </div>
-            <div className="text-gray-400 text-xs mt-1">km Run</div>
-          </div>
-          <div className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
-            <div className="text-2xl font-black text-[#AAEE00]">
-              {tiles?.total_tiles || 0}
-            </div>
-            <div className="text-gray-400 text-xs mt-1">Tiles Owned</div>
+          <div className="card">
+            <div className="text-3xl font-black text-white">{runs.length}</div>
+            <div className="label-upper mt-1">Total Runs</div>
           </div>
         </div>
       </div>
 
-      {/* Run History */}
+      {/* Honors */}
+      <div className="px-6 mb-4">
+        <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>Honors & Commendations</div>
+        <div className="grid grid-cols-4 gap-2">
+          {honors.map((honor, i) => (
+            <div
+              key={i}
+              className="card text-center py-3"
+              style={{ opacity: honor.earned ? 1 : 0.3 }}
+            >
+              <div className="text-2xl mb-1">{honor.icon}</div>
+              <div className="text-xs font-bold text-white leading-tight">{honor.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Ops */}
       <div className="px-6 mb-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-3">Run History</h2>
+        <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>Recent Ops</div>
         {runs.length === 0 ? (
-          <div className="bg-white rounded-2xl p-6 text-center border border-gray-100">
+          <div className="card text-center py-8">
             <div className="text-4xl mb-2">🏃</div>
-            <p className="text-gray-400 text-sm">No runs yet. Start running!</p>
+            <p className="text-sm" style={{ color: '#666' }}>No missions completed yet.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {runs.map((run) => (
-              <div key={run.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-bold text-gray-900">
-                      {(run.distance_meters / 1000).toFixed(2)} km
-                    </p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      {new Date(run.created_at).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </p>
+          <div className="flex flex-col gap-2">
+            {runs.slice(0, 5).map((run, index) => (
+              <div
+                key={run.id}
+                className="flex items-center gap-4 rounded-xl px-4 py-3"
+                style={{ background: '#111', border: '1px solid #1f1f1f' }}
+              >
+                {/* Color bar */}
+                <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: '#CCFF00' }}/>
+
+                <div className="flex-1">
+                  <div className="text-sm font-black text-white">
+                    {index === 0 ? 'SECTOR BREACH' : index === 1 ? 'DAWN PATROL' : 'TERRITORY CLAIM'}
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-[#AAEE00]">+{run.tiles_captured}</p>
-                    <p className="text-gray-400 text-xs">tiles</p>
+                  <div className="label-upper mt-0.5">
+                    {new Date(run.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric'
+                    })} · {Math.floor((run.duration_seconds || 0) / 60)}min
                   </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="font-black" style={{ color: '#CCFF00' }}>
+                    {(run.distance_meters / 1000).toFixed(1)}k
+                  </div>
+                  <div className="label-upper">meters</div>
                 </div>
               </div>
             ))}
@@ -124,10 +200,15 @@ function Profile() {
       {/* Logout */}
       <div className="px-6">
         <button
-          onClick={logout}
-          className="w-full bg-white border-2 border-red-200 text-red-500 font-bold py-4 rounded-2xl text-lg hover:bg-red-50 transition-colors"
+          onClick={handleLogout}
+          className="w-full py-4 rounded-xl font-black text-sm tracking-widest transition-all"
+          style={{
+            background: 'transparent',
+            border: '1px solid #1f1f1f',
+            color: '#666'
+          }}
         >
-          Log Out
+          ↩ LOG OUT
         </button>
       </div>
 
@@ -136,3 +217,4 @@ function Profile() {
 }
 
 export default Profile
+
