@@ -30,82 +30,129 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f0] flex flex-col">
+    <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: '#080808' }}>
+
+      {/* Background grid */}
+      <div className="absolute inset-0 opacity-5" style={{
+        backgroundImage: `linear-gradient(#CCFF00 1px, transparent 1px), linear-gradient(90deg, #CCFF00 1px, transparent 1px)`,
+        backgroundSize: '40px 40px'
+      }}/>
 
       {/* Header */}
-      <div className="px-6 pt-12 pb-8">
-        <Link to="/" className="text-gray-400 text-sm font-medium">← Back</Link>
-        <h1 className="text-4xl font-black text-gray-900 mt-6">Welcome<br />runners!</h1>
-        <p className="text-gray-400 mt-2">Log in to your RunZone account</p>
+      <div className="relative z-10 flex items-center justify-between px-6 pt-12 pb-6">
+        <Link to="/">
+          <span className="text-2xl font-black" style={{ color: '#CCFF00' }}>←</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 border-2 flex items-center justify-center" style={{ borderColor: '#CCFF00' }}>
+            <span className="text-xs font-black" style={{ color: '#CCFF00' }}>Z</span>
+          </div>
+          <span className="font-black text-white tracking-wider">RUNZONE</span>
+        </div>
+        <Link to="/signup" className="text-xs font-bold" style={{ color: '#CCFF00' }}>SIGN UP</Link>
       </div>
 
-      {/* Form */}
-      <div className="flex-1 px-6">
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+      {/* Content */}
+      <div className="relative z-10 flex-1 px-6 pb-10">
+
+        {/* Title */}
+        <div className="mb-8">
+          <div className="label-upper mb-2" style={{ color: '#CCFF00' }}>Returning Operative</div>
+          <h1 className="text-4xl font-black uppercase text-white leading-tight">
+            WELCOME<br />
+            <span style={{ color: '#CCFF00' }}>BACK,</span><br />
+            OPERATIVE.
+          </h1>
+          <p className="text-sm mt-2" style={{ color: '#666' }}>
+            Synchronize your biometrics to continue.
+          </p>
+        </div>
+
+        {/* Form */}
+        <div className="card mb-4">
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-2xl mb-4">
+            <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.3)', color: '#ff4444' }}>
               {error}
             </div>
           )}
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
+
             {/* Email */}
-            <div className="flex items-center gap-3 bg-[#f5f5f0] rounded-2xl px-4 py-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-              </svg>
+            <div>
+              <label className="label-upper mb-2 block">Email Address</label>
               <input
                 type="email"
                 name="email"
-                placeholder="Email"
+                placeholder="agent@runzone.cmd"
                 value={form.email}
                 onChange={handleChange}
-                className="bg-transparent flex-1 outline-none text-gray-900 placeholder-gray-400 text-sm"
+                className="input-dark"
               />
             </div>
 
             {/* Password */}
-            <div className="flex items-center gap-3 bg-[#f5f5f0] rounded-2xl px-4 py-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-              </svg>
+            <div>
+              <label className="label-upper mb-2 block">Password</label>
               <input
                 type="password"
                 name="password"
-                placeholder="Password"
+                placeholder="••••••••"
                 value={form.password}
                 onChange={handleChange}
-                className="bg-transparent flex-1 outline-none text-gray-900 placeholder-gray-400 text-sm"
+                className="input-dark"
               />
+              <div className="text-right mt-2">
+                <span className="text-xs font-bold cursor-pointer" style={{ color: '#CCFF00' }}>
+                  FORGOT PASSWORD?
+                </span>
+              </div>
             </div>
 
             {/* Submit */}
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-[#AAEE00] text-black font-bold py-4 rounded-2xl text-lg hover:bg-[#99dd00] transition-colors disabled:opacity-50 mt-2"
+              className="btn-lime mt-2"
+              style={{ opacity: loading ? 0.6 : 1 }}
             >
-              {loading ? 'Logging in...' : 'Log In'}
+              {loading ? 'SYNCING...' : 'SIGN IN ⚡'}
             </button>
-          </div>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-gray-200"/>
-            <span className="text-gray-400 text-sm">or</span>
-            <div className="flex-1 h-px bg-gray-200"/>
           </div>
-
-          {/* Signup link */}
-          <p className="text-center text-gray-500 text-sm">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-[#AAEE00] font-bold">Sign up</Link>
-          </p>
         </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px" style={{ background: '#222' }}/>
+          <span className="text-xs" style={{ color: '#444' }}>OR CONTINUE WITH</span>
+          <div className="flex-1 h-px" style={{ background: '#222' }}/>
+        </div>
+
+        {/* Social buttons */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <button className="btn-ghost flex items-center justify-center gap-2 py-3">
+            <span className="text-sm">G</span>
+            <span className="text-sm">GOOGLE</span>
+          </button>
+          <button className="btn-ghost flex items-center justify-center gap-2 py-3">
+            <span className="text-sm">🍎</span>
+            <span className="text-sm">APPLE</span>
+          </button>
+        </div>
+
+        {/* Signup link */}
+        <p className="text-center text-sm" style={{ color: '#666' }}>
+          Don't have an account?{' '}
+          <Link to="/signup" className="font-bold" style={{ color: '#CCFF00' }}>Sign Up</Link>
+        </p>
+
       </div>
 
-      <div className="pb-10"/>
+      {/* Bottom glow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full blur-3xl opacity-15" style={{ background: '#CCFF00' }}/>
+
     </div>
   )
 }
