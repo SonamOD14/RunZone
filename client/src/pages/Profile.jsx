@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { getRunHistory } from '../api/runs'
@@ -8,10 +8,18 @@ import { getMyRank } from '../api/leaderboard'
 function Profile() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const fileInputRef = useRef(null)
+  
   const [runs, setRuns] = useState([])
   const [tiles, setTiles] = useState(null)
   const [rank, setRank] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+
+  // Grab the image from localStorage on load so it survives refreshes
+  const [profilePic, setProfilePic] = useState(() => {
+    return localStorage.getItem(`runzone_avatar_${user?.username}`) || null
+  })
 
   useEffect(() => {
     async function fetchData() {
@@ -38,6 +46,33 @@ function Profile() {
     navigate('/')
   }
 
+  const handleAvatarClick = () => {
+    fileInputRef.current.click()
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploading(true)
+
+    // Convert file to Base64 DataURL so it can be saved permanently in the browser
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64String = reader.result
+      
+      // Save to state
+      setProfilePic(base64String)
+      
+      // Save to localStorage linked to this specific user
+      localStorage.setItem(`runzone_avatar_${user?.username}`, base64String)
+      
+      setUploading(false)
+    }
+    
+    reader.readAsDataURL(file)
+  }
+
   const totalDistance = runs.reduce((sum, run) => sum + (run.distance_meters || 0), 0)
 
   const honors = [
@@ -60,6 +95,15 @@ function Profile() {
 
   return (
     <div className="min-h-screen pb-24" style={{ background: '#080808' }}>
+
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
 
       {/* Header */}
       <div className="px-6 pt-12 pb-4 flex justify-between items-center">
@@ -85,13 +129,33 @@ function Profile() {
           <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10" style={{ background: '#CCFF00' }}/>
 
           <div className="flex items-center gap-4 mb-4">
-            {/* Avatar */}
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl flex-shrink-0 lime-glow"
+            {/* Avatar block */}
+            <div 
+              onClick={handleAvatarClick}
+              className="w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl flex-shrink-0 lime-glow relative cursor-pointer group overflow-hidden select-none"
               style={{ background: '#CCFF00', color: '#000' }}
             >
-              {user?.username?.charAt(0).toUpperCase()}
+              {profilePic ? (
+                <img 
+                  src={profilePic} 
+                  alt="Profile" 
+                  className={`w-full h-full object-cover transition-opacity ${uploading ? 'opacity-40' : 'opacity-100'}`}
+                />
+              ) : (
+                user?.username?.charAt(0).toUpperCase()
+              )}
+
+              {uploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: '#CCFF00', borderTopColor: 'transparent' }}/>
+                </div>
+              )}
+
+              <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[9px] text-white font-black tracking-tighter">EDIT</span>
+              </div>
             </div>
+
             <div>
               <div className="text-2xl font-black text-white uppercase tracking-wide">
                 {user?.username}
@@ -170,9 +234,7 @@ function Profile() {
                 className="flex items-center gap-4 rounded-xl px-4 py-3"
                 style={{ background: '#111', border: '1px solid #1f1f1f' }}
               >
-                {/* Color bar */}
                 <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: '#CCFF00' }}/>
-
                 <div className="flex-1">
                   <div className="text-sm font-black text-white">
                     {index === 0 ? 'SECTOR BREACH' : index === 1 ? 'DAWN PATROL' : 'TERRITORY CLAIM'}
@@ -184,7 +246,6 @@ function Profile() {
                     })} · {Math.floor((run.duration_seconds || 0) / 60)}min
                   </div>
                 </div>
-
                 <div className="text-right">
                   <div className="font-black" style={{ color: '#CCFF00' }}>
                     {(run.distance_meters / 1000).toFixed(1)}k
@@ -217,4 +278,3 @@ function Profile() {
 }
 
 export default Profile
-
