@@ -104,9 +104,13 @@ function Login() {
                 className="input-dark"
               />
               <div className="text-right mt-2">
-                <span className="text-xs font-bold cursor-pointer" style={{ color: '#CCFF00' }}>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs font-bold"
+                  style={{ color: '#CCFF00' }}
+                >
                   FORGOT PASSWORD?
-                </span>
+                </Link>
               </div>
             </div>
 
