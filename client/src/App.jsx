@@ -12,6 +12,7 @@ import TerritoryView from './pages/TerritoryView'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
 
+
 function App() {
   const { loading } = useAuth()
 
@@ -47,6 +48,7 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute><Profile /></ProtectedRoute>
         } />
+
       </Routes>
     </div>
   )
