@@ -103,15 +103,6 @@ function Login() {
                 onChange={handleChange}
                 className="input-dark"
               />
-              <div className="text-right mt-2">
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-bold"
-                  style={{ color: '#CCFF00' }}
-                >
-                  FORGOT PASSWORD?
-                </Link>
-              </div>
             </div>
 
             {/* Submit */}
