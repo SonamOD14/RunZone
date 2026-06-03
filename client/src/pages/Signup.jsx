@@ -17,6 +17,14 @@ function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    const emailRegex = /^[^\s@]+@gmail\.com$/i
+
+    if (!emailRegex.test(form.email)) {
+      setError('Please enter a valid @gmail.com address.')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await signupAPI(form)
@@ -98,6 +106,9 @@ function Signup() {
               <input
                 type="email"
                 name="email"
+                required
+                pattern="^[^\\s@]+@gmail\\.com$"
+                title="Please enter a valid @gmail.com email address"
                 placeholder="ENCRYPTED EMAIL"
                 value={form.email}
                 onChange={handleChange}
