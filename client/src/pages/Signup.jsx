@@ -25,6 +25,13 @@ function Signup() {
       return
     }
 
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/
+
+    if (!passwordRegex.test(form.password)) {
+      setError('Password must be at least 8 characters and contain both letters and numbers.')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await signupAPI(form)
@@ -122,6 +129,10 @@ function Signup() {
               <input
                 type="password"
                 name="password"
+                required
+                minLength={8}
+                pattern="(?=.*[A-Za-z])(?=.*\d).{8,}"
+                title="Password must be at least 8 characters and contain both letters and numbers"
                 placeholder="••••••••"
                 value={form.password}
                 onChange={handleChange}
