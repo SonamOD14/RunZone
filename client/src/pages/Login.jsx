@@ -148,14 +148,10 @@ function Login() {
         </div>
 
         {/* Social buttons */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button className="btn-ghost flex items-center justify-center gap-2 py-3">
+        <div className="flex justify-center mb-6">
+          <button className="btn-ghost flex items-center justify-center gap-2 py-3 px-8">
             <span className="text-sm">G</span>
             <span className="text-sm">GOOGLE</span>
-          </button>
-          <button className="btn-ghost flex items-center justify-center gap-2 py-3">
-            <span className="text-sm">🍎</span>
-            <span className="text-sm">APPLE</span>
           </button>
         </div>
 
