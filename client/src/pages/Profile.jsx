@@ -74,6 +74,9 @@ function Profile() {
   }
 
   const totalDistance = runs.reduce((sum, run) => sum + (run.distance_meters || 0), 0)
+  const level = Math.max(1, Math.floor(totalDistance / 10000) + 1)
+  const nextLevelDistance = level * 10000
+  const progressPercent = Math.min(100, (totalDistance / nextLevelDistance) * 100)
 
   const honors = [
     { icon: '🎯', label: 'First Capture', earned: runs.length > 0 },
@@ -132,8 +135,12 @@ function Profile() {
             {/* Avatar block */}
             <div 
               onClick={handleAvatarClick}
-              className="w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl flex-shrink-0 lime-glow relative cursor-pointer group overflow-hidden select-none"
-              style={{ background: '#CCFF00', color: '#000' }}
+              className="w-20 h-20 rounded-full flex items-center justify-center font-black text-2xl flex-shrink-0 lime-glow relative cursor-pointer group overflow-hidden select-none ring-4"
+              style={{
+                background: '#CCFF00',
+                color: '#000',
+                boxShadow: '0 0 30px rgba(204,255,0,0.35)'
+              }}
             >
               {profilePic ? (
                 <img 
@@ -157,7 +164,7 @@ function Profile() {
             </div>
 
             <div>
-              <div className="text-2xl font-black text-white uppercase tracking-wide">
+              <div className="text-3xl font-black text-white uppercase tracking-wide">
                 {user?.username}
               </div>
               <div
@@ -166,11 +173,22 @@ function Profile() {
               >
                 ⚡ ELITE OPERATIVE
               </div>
+              <div className="mt-3 flex items-center gap-2">
+                <div
+                  className="px-3 py-1 rounded-full text-xs font-black"
+                  style={{ background: '#CCFF00', color: '#000' }}
+                >
+                  LEVEL {level}
+                </div>
+                <div className="text-xs" style={{ color: '#888' }}>
+                  {(totalDistance / 1000).toFixed(1)} km completed
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Big stats */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl p-4" style={{ background: '#0e0e0e' }}>
               <div className="text-3xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
                 {(totalDistance / 1000).toFixed(0)}
@@ -183,13 +201,42 @@ function Profile() {
               </div>
               <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Global Rank</div>
             </div>
+            <div className="rounded-xl p-4" style={{ background: '#0e0e0e' }}>
+              <div className="text-3xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                {level}
+              </div>
+              <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Level</div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="flex justify-between text-xs mb-2">
+              <span style={{ color: '#888' }}>Progress to next level</span>
+              <span style={{ color: '#CCFF00' }}>{progressPercent.toFixed(0)}%</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: '#222' }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${progressPercent}%`, background: '#CCFF00' }}
+              />
+            </div>
+          </div>
+          <div className="mt-5 flex gap-2 flex-wrap">
+            <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#CCFF00' }}>
+              🔥 ACTIVE RUNNER
+            </div>
+            <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#fff' }}>
+              🗺️ {tiles?.total_tiles || 0} TERRITORIES
+            </div>
+            <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#fff' }}>
+              🏃 {runs.length} MISSIONS
+            </div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="px-6 mb-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div className="card">
             <div className="text-3xl font-black text-white">{tiles?.total_tiles || 0}</div>
             <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Territories</div>
@@ -197,6 +244,12 @@ function Profile() {
           <div className="card">
             <div className="text-3xl font-black text-white">{runs.length}</div>
             <div className="label-upper mt-1">Total Runs</div>
+          </div>
+          <div className="card">
+            <div className="text-3xl font-black text-white">
+              {runs.length > 0 ? Math.round(totalDistance / runs.length / 1000) : 0}
+            </div>
+            <div className="label-upper mt-1">Avg KM</div>
           </div>
         </div>
       </div>
@@ -220,7 +273,10 @@ function Profile() {
 
       {/* Recent Ops */}
       <div className="px-6 mb-6">
-        <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>Recent Ops</div>
+        <div className="label-upper mb-3 flex items-center gap-2" style={{ color: '#CCFF00' }}>
+          <span>⚡</span>
+          <span>Recent Operations</span>
+        </div>
         {runs.length === 0 ? (
           <div className="card text-center py-8">
             <div className="text-4xl mb-2">🏃</div>
@@ -232,7 +288,10 @@ function Profile() {
               <div
                 key={run.id}
                 className="flex items-center gap-4 rounded-xl px-4 py-3"
-                style={{ background: '#111', border: '1px solid #1f1f1f' }}
+                style={{
+                  background: 'linear-gradient(135deg, #111 0%, #161616 100%)',
+                  border: '1px solid #1f1f1f'
+                }}
               >
                 <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: '#CCFF00' }}/>
                 <div className="flex-1">
@@ -258,19 +317,32 @@ function Profile() {
         )}
       </div>
 
-      {/* Logout */}
-      <div className="px-6">
-        <button
-          onClick={handleLogout}
-          className="w-full py-4 rounded-xl font-black text-sm tracking-widest transition-all"
-          style={{
-            background: 'transparent',
-            border: '1px solid #1f1f1f',
-            color: '#666'
-          }}
-        >
-          ↩ LOG OUT
-        </button>
+      {/* Action Buttons */}
+      <div className="px-6 mb-6">
+        <div className="flex gap-3">
+          <button
+            className="flex-1 py-3 rounded-xl font-black text-xs tracking-widest transition-all"
+            style={{
+              background: 'linear-gradient(135deg, rgba(204,255,0,0.18) 0%, rgba(204,255,0,0.08) 100%)',
+              border: '1px solid rgba(204,255,0,0.25)',
+              color: '#CCFF00'
+            }}
+          >
+            ✦ EDIT PROFILE
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="px-5 py-3 rounded-xl font-black text-xs tracking-widest transition-all"
+            style={{
+              background: '#111',
+              border: '1px solid #222',
+              color: '#999'
+            }}
+          >
+            ⏻ LOGOUT
+          </button>
+        </div>
       </div>
 
     </div>
