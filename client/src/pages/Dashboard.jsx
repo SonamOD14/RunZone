@@ -13,6 +13,11 @@ function Dashboard() {
   const [topRunners, setTopRunners] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const level = Math.max(1, Math.floor((tiles?.total_tiles || 0) / 5) + 1)
+  const xp = (tiles?.total_tiles || 0) * 100
+  const nextLevelXp = level * 500
+  const xpProgress = Math.min(100, (xp / nextLevelXp) * 100)
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -50,17 +55,37 @@ function Dashboard() {
     <div className="min-h-screen pb-24" style={{ background: '#080808' }}>
 
       {/* Header */}
-      <div className="px-6 pt-12 pb-4 flex justify-between items-start">
-        <div>
-          <div className="label-upper mb-1" style={{ color: '#CCFF00' }}>Operative</div>
-          <h1 className="text-2xl font-black text-white uppercase tracking-wide">
-            {user?.username}
-          </h1>
+      <div className="px-6 pt-12 pb-5 flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black"
+            style={{
+              background: '#CCFF00',
+              color: '#000',
+              boxShadow: '0 0 25px rgba(204,255,0,0.35)'
+            }}
+          >
+            {user?.username?.charAt(0)?.toUpperCase()}
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-black text-white uppercase tracking-wide">
+              {user?.username}
+            </h1>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="px-2 py-1 rounded-full text-[10px] font-black" style={{ background:'#151515', color:'#CCFF00' }}>
+                LEVEL {level}
+              </span>
+              <span className="text-xs" style={{ color:'#888' }}>
+                ● ACTIVE
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full live-pulse" style={{ background: '#CCFF00' }}/>
-          <span className="label-upper" style={{ color: '#CCFF00' }}>SCORE</span>
-          <span className="font-black text-white">{(tiles?.total_tiles || 0) * 34}</span>
+
+        <div className="rounded-xl px-4 py-3 text-center" style={{ background:'#111', border:'1px solid #222' }}>
+          <div className="label-upper" style={{ color:'#CCFF00' }}>Score</div>
+          <div className="text-xl font-black text-white">{(tiles?.total_tiles || 0) * 34}</div>
         </div>
       </div>
 
@@ -73,13 +98,25 @@ function Dashboard() {
           {/* Glow */}
           <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-10" style={{ background: '#CCFF00' }}/>
 
-          <div className="label-upper mb-1" style={{ color: '#CCFF00' }}>Global Domination</div>
+          <div className="label-upper mb-1" style={{ color: '#CCFF00' }}>LEVEL {level} OPERATIVE</div>
           <div className="text-6xl font-black lime-text-glow mb-0" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
             {((tiles?.total_tiles || 0) * 0.0057).toFixed(1)}
           </div>
           <div className="text-white font-bold text-lg mb-1">SQ KM OWNED</div>
           <div className="text-xs mb-4" style={{ color: '#666' }}>
             Top {Math.max(1, 100 - (tiles?.total_tiles || 0))}% of Sector-7 Zone
+          </div>
+          <div className="mb-4">
+            <div className="flex justify-between text-xs mb-2">
+              <span style={{ color:'#888' }}>XP Progress</span>
+              <span style={{ color:'#CCFF00' }}>{xp}/{nextLevelXp}</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background:'#222' }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width:`${xpProgress}%`, background:'#CCFF00' }}
+              />
+            </div>
           </div>
 
           {/* Stats row */}
@@ -144,7 +181,7 @@ function Dashboard() {
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="inline-block px-2 py-1 rounded text-xs font-bold mb-2" style={{ background: 'rgba(204,255,0,0.1)', color: '#CCFF00' }}>
-                ACTIVE
+                MISSION READY
               </div>
               <div className="text-white font-black text-lg">Capture the Streets</div>
               <div className="text-sm mt-1" style={{ color: '#666' }}>
@@ -156,8 +193,21 @@ function Dashboard() {
             to="/run"
             className="btn-lime text-center block"
           >
-            ⚡ INITIALIZE RUN
+            🚀 START MISSION
           </Link>
+        </div>
+      </div>
+
+      <div className="px-6 mb-4">
+        <div className="label-upper mb-3" style={{ color:'#CCFF00' }}>
+          Achievements
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card">🏆 First Territory</div>
+          <div className="card">🔥 Active Runner</div>
+          <div className="card">🗺 Explorer</div>
+          <div className="card">⚡ Mission Ready</div>
         </div>
       </div>
 
@@ -178,7 +228,7 @@ function Dashboard() {
             {topRunners.map((runner) => (
               <div key={runner.id} className="card flex items-center gap-4">
                 <div className="text-lg font-black w-8 text-center" style={{ color: '#CCFF00' }}>
-                  {String(runner.rank).padStart(2, '0')}
+                  {runner.rank === 1 ? '🥇' : runner.rank === 2 ? '🥈' : runner.rank === 3 ? '🥉' : String(runner.rank).padStart(2, '0')}
                 </div>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-black text-black text-sm" style={{ background: '#CCFF00' }}>
                   {runner.username.charAt(0).toUpperCase()}
