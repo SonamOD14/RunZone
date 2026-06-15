@@ -1,10 +1,10 @@
 import axios from 'axios'
+import { API_BASE_URL } from './config'
 
 const API = axios.create({
-  baseURL: '/api'
+  baseURL: API_BASE_URL
 })
 
-// Attach JWT token to every request automatically
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -13,7 +13,6 @@ API.interceptors.request.use((config) => {
   return config
 })
 
-// Territory API calls
 export const getAllTiles = () => API.get('/territory/all')
 export const getMyTiles = () => API.get('/territory/mine')
 export const getUserTiles = (id) => API.get(`/territory/user/${id}`)
