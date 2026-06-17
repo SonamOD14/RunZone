@@ -61,15 +61,15 @@ function Landing() {
           {/* Stats preview */}
           <div className="grid grid-cols-3 gap-4 mb-10 max-w-xl">
             <div className="flex-1 card text-center">
-              <div className="text-3xl font-black stat-number text-lime-400">52,847</div>
+              <div className="text-4xl">🏃</div>
               <div className="label-upper mt-1">Operatives</div>
             </div>
             <div className="flex-1 card text-center">
-              <div className="text-3xl font-black stat-number text-lime-400">214K</div>
+              <div className="text-4xl">🗺️</div>
               <div className="label-upper mt-1">Zones Claimed</div>
             </div>
             <div className="flex-1 card text-center">
-              <div className="text-3xl font-black stat-number text-lime-400">1.8M</div>
+              <div className="text-4xl">⚡</div>
               <div className="label-upper mt-1">KM Run</div>
             </div>
           </div>
@@ -106,15 +106,15 @@ function Landing() {
 
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-xl bg-black/40 p-3 text-center">
-                <div className="text-lime-400 font-black text-2xl">2,847</div>
+                <div className="text-3xl">🎯</div>
                 <div className="text-xs text-gray-400">Blocks</div>
               </div>
               <div className="rounded-xl bg-black/40 p-3 text-center">
-                <div className="text-lime-400 font-black text-2xl">#12</div>
+                <div className="text-3xl">👑</div>
                 <div className="text-xs text-gray-400">Rank</div>
               </div>
               <div className="rounded-xl bg-black/40 p-3 text-center">
-                <div className="text-lime-400 font-black text-2xl">42.7km</div>
+                <div className="text-3xl">🔥</div>
                 <div className="text-xs text-gray-400">Today</div>
               </div>
             </div>
@@ -130,4 +130,4 @@ function Landing() {
   )
 }
 
-export default Landing
+export default Land
