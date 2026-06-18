@@ -130,4 +130,4 @@ function Landing() {
   )
 }
 
-export default Land
+export default Landing
