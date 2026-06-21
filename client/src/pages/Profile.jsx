@@ -79,10 +79,10 @@ function Profile() {
   const progressPercent = Math.min(100, (totalDistance / nextLevelDistance) * 100)
 
   const honors = [
-    { icon: '🎯', label: 'First Capture', earned: runs.length > 0 },
-    { icon: '🌙', label: 'Night Owl', earned: false },
-    { icon: '⚡', label: '50km Club', earned: totalDistance >= 50000 },
-    { icon: '🗺️', label: 'Sector 7', earned: (tiles?.total_tiles || 0) >= 10 },
+    { icon: 'FC', label: 'First Capture', earned: runs.length > 0 },
+    { icon: 'NO', label: 'Night Ops', earned: false },
+    { icon: '50', label: '50KM Club', earned: totalDistance >= 50000 },
+    { icon: 'S7', label: 'Sector Control', earned: (tiles?.total_tiles || 0) >= 10 },
   ]
 
   if (loading) {
@@ -222,13 +222,13 @@ function Profile() {
           </div>
           <div className="mt-5 flex gap-2 flex-wrap">
             <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#CCFF00' }}>
-              🔥 ACTIVE RUNNER
+              ACTIVE STATUS
             </div>
             <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#fff' }}>
-              🗺️ {tiles?.total_tiles || 0} TERRITORIES
+              GRID {tiles?.total_tiles || 0}
             </div>
             <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#fff' }}>
-              🏃 {runs.length} MISSIONS
+              OPS {runs.length}
             </div>
           </div>
         </div>
@@ -264,7 +264,12 @@ function Profile() {
               className="card text-center py-3"
               style={{ opacity: honor.earned ? 1 : 0.3 }}
             >
-              <div className="text-2xl mb-1">{honor.icon}</div>
+              <div
+                className="w-10 h-10 mx-auto mb-2 flex items-center justify-center rounded-lg text-xs font-black"
+                style={{ background: '#151515', color: '#CCFF00', border: '1px solid #222' }}
+              >
+                {honor.icon}
+              </div>
               <div className="text-xs font-bold text-white leading-tight">{honor.label}</div>
             </div>
           ))}
@@ -274,12 +279,12 @@ function Profile() {
       {/* Recent Ops */}
       <div className="px-6 mb-6">
         <div className="label-upper mb-3 flex items-center gap-2" style={{ color: '#CCFF00' }}>
-          <span>⚡</span>
+          <span>■</span>
           <span>Recent Operations</span>
         </div>
         {runs.length === 0 ? (
           <div className="card text-center py-8">
-            <div className="text-4xl mb-2">🏃</div>
+            <div className="text-4xl mb-2">■</div>
             <p className="text-sm" style={{ color: '#666' }}>No missions completed yet.</p>
           </div>
         ) : (
