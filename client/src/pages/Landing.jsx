@@ -53,25 +53,40 @@ function Landing() {
           <div className="inline-flex items-center gap-2 mb-6 self-start">
             <div className="w-2 h-2 rounded-full live-pulse" style={{ background: '#CCFF00' }} />
             <span className="label-upper" style={{ color: '#CCFF00' }}>
-              GPS Territory Game
+              Real-World Territory Running
             </span>
           </div>
 
           {/* Headline */}
           <h1 className="text-6xl md:text-7xl lg:text-8xl font-black leading-none mb-6 uppercase tracking-tight">
-            <span className="text-white">CAPTURE</span>
+            <span className="text-white">RUN.</span>
             <br />
-            <span className="text-white">YOUR</span>
+            <span className="text-white">CLAIM.</span>
             <br />
             <span className="lime-text-glow" style={{ color: '#CCFF00' }}>
-              CITY.
+              CONQUER.
             </span>
           </h1>
 
           <p className="text-lg mb-10 max-w-xl leading-relaxed text-gray-300">
-            Turn every run into territory. Map your routes, claim the streets you cover, and
-            defend your zone as others try to take it.
+            Transform every run into a strategic battle for territory. Track your routes,
+            expand your influence across the city, and compete with runners to dominate the map.
           </p>
+
+          <div className="flex flex-wrap gap-6 mb-10 text-sm uppercase tracking-wider">
+            <div>
+              <span className="text-lime-400 font-black">10K+</span>
+              <p className="text-gray-500 mt-1">Territories Claimed</p>
+            </div>
+            <div>
+              <span className="text-lime-400 font-black">500+</span>
+              <p className="text-gray-500 mt-1">Active Runners</p>
+            </div>
+            <div>
+              <span className="text-lime-400 font-black">24/7</span>
+              <p className="text-gray-500 mt-1">Live Competition</p>
+            </div>
+          </div>
 
           {/* CTAs */}
           <div className="flex flex-col gap-3">
@@ -92,7 +107,7 @@ function Landing() {
         <div className="w-full max-w-md">
           <div className="relative rounded-3xl border border-lime-400/30 bg-white/5 backdrop-blur-xl p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <span className="text-lime-400 font-bold tracking-widest">LIVE TERRITORY</span>
+              <span className="text-lime-400 font-bold tracking-widest">CITY DOMINATION</span>
               <span className="text-xs text-gray-400">RUNZONE</span>
             </div>
 
@@ -108,18 +123,18 @@ function Landing() {
 
               <div className="absolute bottom-4 left-4 right-4 rounded-xl bg-black/70 backdrop-blur-md border border-lime-400/10 p-3">
                 <div className="text-xs uppercase tracking-widest text-lime-400">
-                  Live Territory Map
+                  Territory Control Center
                 </div>
                 <div className="text-sm text-gray-400 mt-1">
-                  Claim routes. Expand your territory. Defend what's yours.
+                  Capture new streets, defend key zones, and rise on the leaderboard.
                 </div>
               </div>
             </div>
 
             <div className="border-t border-lime-400/10 pt-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Status</span>
-                <span className="text-lime-400">Online</span>
+                <span className="text-gray-500">Global Rank</span>
+                <span className="text-lime-400">#128 Active</span>
               </div>
             </div>
           </div>
