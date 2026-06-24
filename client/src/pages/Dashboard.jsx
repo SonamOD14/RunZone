@@ -193,7 +193,7 @@ function Dashboard() {
             to="/run"
             className="btn-lime text-center block"
           >
-            🚀 START MISSION
+             START MISSION
           </Link>
         </div>
       </div>
