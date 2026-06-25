@@ -13,6 +13,29 @@ function Dashboard() {
   const [topRunners, setTopRunners] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const achievementList = [
+    {
+      icon: '🏆',
+      title: 'First Territory',
+      unlocked: (tiles?.total_tiles || 0) >= 1
+    },
+    {
+      icon: '🔥',
+      title: 'Active Runner',
+      unlocked: (stats?.total_runs || 0) >= 5
+    },
+    {
+      icon: '🗺',
+      title: 'Explorer',
+      unlocked: (stats?.total_distance_km || 0) >= 25
+    },
+    {
+      icon: '⚡',
+      title: 'Mission Ready',
+      unlocked: true
+    }
+  ]
+
   const level = Math.max(1, Math.floor((tiles?.total_tiles || 0) / 5) + 1)
   const xp = (tiles?.total_tiles || 0) * 100
   const nextLevelXp = level * 500
@@ -85,7 +108,27 @@ function Dashboard() {
 
         <div className="rounded-xl px-4 py-3 text-center" style={{ background:'#111', border:'1px solid #222' }}>
           <div className="label-upper" style={{ color:'#CCFF00' }}>Score</div>
-          <div className="text-xl font-black text-white">{(tiles?.total_tiles || 0) * 34}</div>
+          <div className="text-xl font-black text-white">{Math.round(((tiles?.total_tiles || 0) * 34) + ((stats?.total_distance_km || 0) * 5))}</div>
+        </div>
+      </div>
+
+      <div className="px-6 mb-4">
+        <div
+          className="rounded-2xl p-5"
+          style={{
+            background: 'linear-gradient(135deg,#CCFF00 0%,#B8E600 100%)',
+            color: '#000'
+          }}
+        >
+          <div className="text-xs font-black uppercase tracking-wider">
+            Welcome Back
+          </div>
+          <div className="text-2xl font-black mt-1">
+            Ready to conquer new territory?
+          </div>
+          <div className="text-sm mt-2 opacity-70">
+            Every kilometer expands your zone and increases your rank.
+          </div>
         </div>
       </div>
 
@@ -204,10 +247,21 @@ function Dashboard() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="card">🏆 First Territory</div>
-          <div className="card">🔥 Active Runner</div>
-          <div className="card">🗺 Explorer</div>
-          <div className="card">⚡ Mission Ready</div>
+          {achievementList.map((achievement) => (
+            <div
+              key={achievement.title}
+              className="card flex items-center gap-2"
+              style={{
+                opacity: achievement.unlocked ? 1 : 0.45,
+                border: achievement.unlocked
+                  ? '1px solid rgba(204,255,0,0.3)'
+                  : '1px solid #222'
+              }}
+            >
+              <span>{achievement.icon}</span>
+              <span>{achievement.title}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -234,7 +288,10 @@ function Dashboard() {
                   {runner.username.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
-                  <div className="font-bold text-white text-sm uppercase">{runner.username}</div>
+                  <div className="font-bold text-white text-sm uppercase flex items-center gap-2">
+                    {runner.username}
+                    {runner.rank === 1 && <span>👑</span>}
+                  </div>
                   <div className="label-upper">{runner.total_distance_km} KM Total</div>
                 </div>
                 <div className="text-right">
