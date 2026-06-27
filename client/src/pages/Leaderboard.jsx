@@ -101,6 +101,7 @@ function Leaderboard() {
     )
   }
 
+
   return (
     <div className="min-h-screen pb-24 w-full block text-neutral-400 font-sans" style={{ background: '#080808', display: 'block' }}>
       
@@ -139,6 +140,7 @@ function Leaderboard() {
           })}
         </div>
       </nav>
+
 
       {/* Network / Connection Diagnostic Feedback */}
       {apiError && (
