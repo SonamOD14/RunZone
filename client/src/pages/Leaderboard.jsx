@@ -42,7 +42,6 @@ function Leaderboard() {
         }
 
         setLeaderboard(list)
-        
 
         // Only pull personal standing if a authenticated user session exists
         if (user && user.id) {
