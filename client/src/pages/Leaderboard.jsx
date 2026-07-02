@@ -1,276 +1,335 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getLeaderboard, getMyRank } from '../api/leaderboard'
 
-function Leaderboard() {
-  // Safe extraction of user context with an empty object fallback 
-  const authContext = useAuth() || {}
-  const { user } = authContext
+const MEDALS = ['🥇', '🥈', '🥉']
+const RANK_GRADIENTS = [
+  'linear-gradient(135deg, #FFD700, #FDB931)',
+  'linear-gradient(135deg, #E8E8E8, #B0B0B0)',
+  'linear-gradient(135deg, #CD7F32, #A0652A)',
+]
 
-  const [leaderboard, setLeaderboard] = useState([])
+function hashColor(name) {
+  let hash = 0
+  for (let i = 0; i < (name || '').length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue}, 70%, 35%)`
+}
+
+function isActive(lastActive) {
+  if (!lastActive) return false
+  const diff = Date.now() - new Date(lastActive).getTime()
+  return diff < 86400000
+}
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
+
+function Leaderboard() {
+  const { user } = useAuth()
+  const [entries, setEntries] = useState([])
   const [myRank, setMyRank] = useState(null)
-  const [myData, setMyData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('global')
-  const [apiError, setApiError] = useState(false)
 
   useEffect(() => {
-    let isMounted = true
-    console.log("⚡ [Leaderboard] Component mounted or user status changed. User ID:", user?.id || 'Guest')
-
+    let mounted = true
     async function fetchData() {
       try {
         setLoading(true)
-        setApiError(false)
-        
-        console.log("🛰️ [Leaderboard] Requesting getLeaderboard()...")
-        const leaderboardRes = await getLeaderboard()
-        console.log("📦 [Leaderboard] Raw Response Received:", leaderboardRes)
-        
-        if (!isMounted) return
-
-        // Bulletproof parsing: accepts .data.leaderboard, raw array, or fallback array
-        let list = []
-        if (leaderboardRes?.data?.leaderboard && Array.isArray(leaderboardRes.data.leaderboard)) {
-          list = leaderboardRes.data.leaderboard
-        } else if (leaderboardRes?.data && Array.isArray(leaderboardRes.data)) {
-          list = leaderboardRes.data
-        } else if (Array.isArray(leaderboardRes)) {
-          list = leaderboardRes
-        } else {
-          console.warn("⚠️ [Leaderboard] API response structure didn't match arrays. Received:", leaderboardRes)
-        }
-
-        setLeaderboard(list)
-
-        // Only pull personal standing if a authenticated user session exists
-        if (user && user.id) {
-          console.log("🛰️ [Leaderboard] User logged in. Requesting getMyRank()...")
+        const res = await getLeaderboard()
+        if (!mounted) return
+        const list = res?.data?.leaderboard || []
+        setEntries(list)
+        if (user?.id) {
           try {
             const rankRes = await getMyRank()
-            console.log("📦 [Leaderboard] Rank Response:", rankRes)
-            
-            if (isMounted && rankRes?.data) {
-              const assignedRank = rankRes.data.rank || rankRes.data
-              setMyRank(typeof assignedRank === 'number' ? assignedRank : null)
-              
-              const me = list.find(r => r && String(r.id) === String(user.id))
-              setMyData(me || null)
+            if (mounted && rankRes?.data) {
+              setMyRank(rankRes.data.rank ?? null)
             }
-          } catch (rankErr) {
-            console.error("❌ [Leaderboard] Failed to fetch personal rank profile data:", rankErr)
-          }
+          } catch (_) {}
         }
       } catch (err) {
-        console.error('❌ [Leaderboard] Critical top-level fetch error:', err)
-        if (isMounted) setApiError(true)
+        console.error(err)
       } finally {
-        if (isMounted) {
-          console.log("✅ [Leaderboard] Loading process finalized.")
-          setLoading(false)
-        }
+        if (mounted) setLoading(false)
       }
     }
-
     fetchData()
-
-    return () => {
-      isMounted = false
-    }
+    return () => { mounted = false }
   }, [user])
 
-  // Secure calculation handler for finding targets ahead of the current user
-  const getTilesToGo = () => {
-    if (!myData || !myRank || myRank <= 1) return null
-    const nextPlayerUp = leaderboard.find(player => player && Number(player.rank) === Number(myRank) - 1)
-    if (!nextPlayerUp) return null
+  const top3 = entries.slice(0, 3)
+  const rest = entries.slice(3)
 
-    const diff = (nextPlayerUp.total_tiles || 0) - (myData.total_tiles || 0)
-    return diff >= 0 ? `${diff} tiles to go` : '0 tiles to go'
-  }
+  const myEntry = useMemo(() =>
+    user?.id ? entries.find(r => String(r.id) === String(user.id)) : null
+  , [entries, user])
 
-  // 1. Loading Phase
+  const tilesToNext = useMemo(() => {
+    if (!myEntry || !myRank || myRank <= 1) return null
+    const above = entries.find(r => Number(r.rank) === Number(myRank) - 1)
+    if (!above) return null
+    const diff = (above.total_tiles || 0) - (myEntry.total_tiles || 0)
+    return diff > 0 ? diff : 0
+  }, [myEntry, myRank, entries])
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-3" style={{ background: '#080808' }}>
-        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: '#CCFF00', borderTopColor: 'transparent' }} />
-        <span style={{ color: '#CCFF00', fontSize: '10px', fontWeight: 900, tracking: '0.1em', textTransform: 'uppercase' }}>
-          Establishing Feed connection...
-        </span>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080808' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 rounded-full border-t-transparent animate-spin" style={{ borderColor: '#CCFF00', borderTopColor: 'transparent' }}/>
+          <span className="label-upper" style={{ color: '#CCFF00' }}>Loading leaderboard...</span>
+        </div>
       </div>
     )
   }
 
-
   return (
-    <div className="min-h-screen pb-24 w-full block text-neutral-400 font-sans" style={{ background: '#080808', display: 'block' }}>
-      
+    <div className="min-h-screen pb-28" style={{ background: '#080808' }}>
+
       {/* Header */}
-      <header className="px-6 pt-12 pb-4">
-        <div className="flex justify-between items-center">
+      <div className="px-6 pt-12 pb-2" style={{ animation: 'fadeIn 0.4s ease-out' }}>
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-2xl">🏆</span>
           <div>
-            <div className="mb-1 text-xs font-black uppercase tracking-widest" style={{ color: '#CCFF00' }}>
-              ⚡ SECURE ZONE / {activeTab}
-            </div>
+            <div className="label-upper" style={{ color: '#CCFF00' }}>GLOBAL RANKINGS</div>
             <h1 className="text-3xl font-black text-white uppercase tracking-tight">
               Leaderboard
             </h1>
           </div>
         </div>
-      </header>
+        <p className="text-xs mt-2" style={{ color: '#888' }}>
+          {entries.length} operatives in the field
+        </p>
+      </div>
 
-      {/* Navigation Controls */}
-      <nav className="px-6 mb-6">
-        <div className="flex gap-2 p-1 rounded-xl w-fit border border-[#222]" style={{ background: '#111' }}>
-          {['global', 'local'].map(tab => {
-            const isActive = activeTab === tab
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="px-5 py-2 rounded-lg text-xs font-black tracking-wider transition-all uppercase"
-                style={{
-                  background: isActive ? '#CCFF00' : 'transparent',
-                  color: isActive ? '#000' : '#666',
-                }}
-              >
-                {tab}
-              </button>
-            )
-          })}
-        </div>
-      </nav>
-
-
-      {/* Network / Connection Diagnostic Feedback */}
-      {apiError && (
-        <div className="mx-6 mb-6 p-4 rounded-xl border border-red-900/30 bg-red-950/20 text-red-400 text-xs font-bold uppercase tracking-wide">
-          ⚠️ Network Sync Failure. Displaying cached local datasets.
-        </div>
-      )}
-
-      {/* User Dashboard Profile Module */}
-      {user && myRank && (
-        <section className="px-6 mb-6">
-          <div className="rounded-2xl p-5 relative overflow-hidden border border-[rgba(204,255,0,0.15)] shadow-xl" style={{ background: 'linear-gradient(135deg, #111 0%, #1a1a1a 100%)' }}>
-            <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl opacity-10 bg-[#CCFF00]" />
-
-            <div className="grid grid-cols-3 gap-4 relative z-10">
-              <div>
-                <div className="text-[10px] uppercase font-black tracking-wider text-neutral-500 mb-1">Your Rank</div>
-                <div className="text-4xl font-black tracking-tighter" style={{ color: '#CCFF00', textShadow: '0 0 10px rgba(204,255,0,0.2)' }}>
-                  #{myRank}
-                </div>
-              </div>
-              
-              <div>
-                <div className="text-[10px] uppercase font-black tracking-wider text-neutral-500 mb-1">Next Objective</div>
-                <div className="text-2xl font-black text-white">
-                  #{Math.max(1, myRank - 1)}
-                </div>
-                {getTilesToGo() && (
-                  <div className="text-[10px] font-black tracking-wide mt-1" style={{ color: '#CCFF00' }}>
-                    {getTilesToGo()}
+      {/* Your Rank Card */}
+      {myRank && myEntry && (
+        <div className="px-6 mb-6 mt-4" style={{ animation: 'fadeIn 0.4s ease-out 0.1s both' }}>
+          <div
+            className="rounded-2xl p-5 relative overflow-hidden"
+            style={{
+              background: 'linear-gradient(135deg, rgba(204,255,0,0.08) 0%, #111 100%)',
+              border: '1px solid rgba(204,255,0,0.2)',
+              boxShadow: '0 0 30px rgba(204,255,0,0.06)'
+            }}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-20" style={{ background: '#CCFF00' }}/>
+            <div className="relative z-10">
+              <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>YOUR STANDING</div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#888' }}>Rank</div>
+                  <div className="text-4xl font-black" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
+                    #{myRank}
                   </div>
-                )}
-              </div>
-
-              <div>
-                <div className="text-[10px] uppercase font-black tracking-wider text-neutral-500 mb-1">Sectors Held</div>
-                <div className="text-2xl font-black text-white">
-                  {myData?.total_tiles || 0}
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#888' }}>Tiles</div>
+                  <div className="text-4xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                    {myEntry.total_tiles || 0}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: '#888' }}>Next Rank</div>
+                  <div className="text-4xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                    #{Math.max(1, myRank - 1)}
+                  </div>
+                  {tilesToNext !== null && (
+                    <div className="text-[10px] font-bold mt-1" style={{ color: '#CCFF00' }}>
+                      {tilesToNext} tiles away
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
       )}
 
-      {/* Leaderboard Array Iteration Render Engine */}
-      <main className="px-6">
-        {leaderboard.length === 0 ? (
-          <div className="border border-[#1f1f1f] bg-[#111] rounded-2xl text-center py-12 px-4">
-            <div className="text-5xl mb-3">📡</div>
-            <div className="text-white font-bold mb-1">Grid Offline / Empty</div>
-            <p className="text-sm text-neutral-500">No telemetry profiles recovered in this sector scope yet.</p>
+      {/* Empty State */}
+      {entries.length === 0 ? (
+        <div className="px-6" style={{ animation: 'fadeIn 0.4s ease-out 0.15s both' }}>
+          <div className="card text-center py-16">
+            <div className="text-6xl mb-4">🏃</div>
+            <div className="text-white font-bold text-lg mb-2">No Operatives Yet</div>
+            <p className="text-sm" style={{ color: '#888' }}>Be the first to claim territory and make your mark.</p>
           </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {leaderboard.map((runner, index) => {
-              if (!runner) return null
-              
-              // Fallback protection if backend database forgot to append sequence values
-              const currentRank = runner.rank || (index + 1)
-              const isCurrentUser = user?.id && String(user.id) === String(runner.id)
-              const isTop3 = currentRank <= 3
-
-              return (
-                <div
-                  key={runner.id || index}
-                  className={`flex items-center gap-4 rounded-xl px-4 py-3 transition-all ${
-                    isCurrentUser ? 'bg-[rgba(204,255,0,0.02)]' : 'bg-[#111]'
-                  }`}
-                  style={{
-                    border: `1px solid ${isCurrentUser ? 'rgba(204,255,0,0.3)' : '#1f1f1f'}`
-                  }}
-                >
-                  {/* Rank Flag */}
-                  <div
-                    className="w-8 text-center font-black text-sm tracking-tighter"
-                    style={{ color: isTop3 ? '#CCFF00' : '#444' }}
-                  >
-                    {String(currentRank).padStart(2, '0')}
+        </div>
+      ) : (
+        <>
+          {/* Top 3 Podium */}
+          {top3.length > 0 && (
+            <div className="px-6 mb-6" style={{ animation: 'fadeIn 0.4s ease-out 0.15s both' }}>
+              <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>TOP OPERATIVES</div>
+              <div className="flex gap-3">
+                {top3.length >= 2 && (
+                  <div className="flex-1 rounded-2xl p-4 text-center relative overflow-hidden" style={{
+                    background: 'linear-gradient(180deg, #1a1a1a 0%, #111 100%)',
+                    border: '1px solid #2a2a2a',
+                    marginTop: '12px'
+                  }}>
+                    <div className="text-2xl mb-2">{MEDALS[1]}</div>
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm mx-auto mb-2"
+                      style={{ background: RANK_GRADIENTS[1], color: RANK_COLORS[1] }}
+                    >
+                      {top3[1]?.username?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div className="text-white font-bold text-sm uppercase truncate">{top3[1]?.username || 'Runner'}</div>
+                    <div className="text-lg font-black mt-1" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
+                      {top3[1]?.total_tiles || 0}
+                    </div>
+                    <div className="label-upper">tiles</div>
                   </div>
+                )}
 
-                  {/* Operational Callsign Avatar Tag */}
+                <div className="flex-1 rounded-2xl p-4 text-center relative overflow-hidden" style={{
+                  background: 'linear-gradient(180deg, rgba(255,215,0,0.08) 0%, #111 100%)',
+                  border: '1px solid rgba(255,215,0,0.2)',
+                  transform: 'scale(1.05)',
+                  zIndex: 1
+                }}>
+                  <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, #FFD700, transparent)' }}/>
+                  <div className="text-3xl mb-1">{MEDALS[0]}</div>
                   <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 border"
+                    className="w-12 h-12 rounded-full flex items-center justify-center font-black text-sm mx-auto mb-2"
+                    style={{ background: RANK_GRADIENTS[0], color: '#000', boxShadow: '0 0 20px rgba(255,215,0,0.3)' }}
+                  >
+                    {top3[0]?.username?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div className="text-white font-black uppercase truncate">{top3[0]?.username || 'Runner'}</div>
+                  <div className="text-2xl font-black mt-1" style={{ color: '#FFD700', fontFamily: 'Space Grotesk' }}>
+                    {top3[0]?.total_tiles || 0}
+                  </div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#888' }}>tiles</div>
+                  <div className="text-xs mt-1" style={{ color: '#666' }}>{top3[0]?.total_distance_km || '0'} KM</div>
+                </div>
+
+                {top3.length >= 3 && (
+                  <div className="flex-1 rounded-2xl p-4 text-center relative overflow-hidden" style={{
+                    background: 'linear-gradient(180deg, #1a1a1a 0%, #111 100%)',
+                    border: '1px solid #2a2a2a',
+                    marginTop: '20px'
+                  }}>
+                    <div className="text-2xl mb-2">{MEDALS[2]}</div>
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm mx-auto mb-2"
+                      style={{ background: RANK_GRADIENTS[2], color: '#fff' }}
+                    >
+                      {top3[2]?.username?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div className="text-white font-bold text-sm uppercase truncate">{top3[2]?.username || 'Runner'}</div>
+                    <div className="text-lg font-black mt-1" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
+                      {top3[2]?.total_tiles || 0}
+                    </div>
+                    <div className="label-upper">tiles</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Leaderboard List */}
+          <div className="px-6" style={{ animation: 'fadeIn 0.4s ease-out 0.25s both' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="label-upper" style={{ color: '#CCFF00' }}>ALL OPERATIVES</span>
+              <span className="text-xs" style={{ color: '#888' }}>
+                {entries.length - top3.length} more
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {rest.map((runner, index) => {
+                const rank = Number(runner.rank) || (index + 4)
+                const isYou = user?.id && String(user.id) === String(runner.id)
+                const active = isActive(runner.last_active)
+                return (
+                  <div
+                    key={runner.id || index}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-200 hover:scale-[1.01]"
                     style={{
-                      background: isCurrentUser ? '#CCFF00' : '#161616',
-                      color: isCurrentUser ? '#000' : '#888',
-                      borderColor: isCurrentUser ? '#CCFF00' : '#262626'
+                      background: isYou ? 'rgba(204,255,0,0.03)' : '#111',
+                      border: `1px solid ${isYou ? 'rgba(204,255,0,0.25)' : '#1f1f1f'}`,
+                      animation: `fadeIn 0.3s ease-out ${0.3 + index * 0.03}s both`
                     }}
                   >
-                    {runner.username ? runner.username.charAt(0).toUpperCase() : '?'}
-                  </div>
+                    {/* Rank */}
+                    <div className="w-8 text-center font-black text-sm shrink-0" style={{ color: '#444', fontFamily: 'Space Grotesk' }}>
+                      #{rank}
+                    </div>
 
-                  {/* Runner Core Information Identifiers */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-neutral-200 text-sm tracking-wide uppercase truncate">
-                        {runner.username || 'Unknown Operative'}
-                      </span>
-                      {isCurrentUser && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded flex-shrink-0 bg-[rgba(204,255,0,0.15)] signatures-tag" style={{ color: '#CCFF00' }}>
-                          YOU
+                    {/* Avatar */}
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0"
+                      style={{
+                        background: isYou ? '#CCFF00' : hashColor(runner.username),
+                        color: isYou ? '#000' : '#fff',
+                        boxShadow: active && !isYou ? '0 0 0 2px rgba(204,255,0,0.3)' : 'none'
+                      }}
+                    >
+                      {runner.username?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-white uppercase truncate">
+                          {runner.username || 'Unknown'}
                         </span>
-                      )}
+                        {isYou && (
+                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded" style={{ background: 'rgba(204,255,0,0.15)', color: '#CCFF00' }}>
+                            YOU
+                          </span>
+                        )}
+                        {active && !isYou && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 live-pulse" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: '#666' }}>
+                        <span>{runner.total_distance_km || '0'} KM</span>
+                        {runner.last_active && (
+                          <span>{formatTimeAgo(runner.last_active)}</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 mt-0.5">
-                      {typeof runner.total_distance_km === 'number' ? runner.total_distance_km.toFixed(1) : '0.0'} KM
+
+                    {/* Tiles */}
+                    <div className="text-right shrink-0">
+                      <div className="font-black text-base" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
+                        {runner.total_tiles || 0}
+                      </div>
+                      <div className="text-[9px] font-black uppercase tracking-wider" style={{ color: '#555' }}>
+                        tiles
+                      </div>
+                    </div>
+
+                    {/* Arrow */}
+                    <div style={{ color: isYou ? '#CCFF00' : '#222' }}>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
+                        <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                      </svg>
                     </div>
                   </div>
-
-                  {/* Quantitative Stats */}
-                  <div className="text-right flex-shrink-0">
-                    <div className="font-black text-white text-base leading-none">{runner.total_tiles || 0}</div>
-                    <div className="text-[9px] font-black uppercase tracking-wider text-neutral-500 mt-0.5">Tiles</div>
-                  </div>
-
-                  {/* Vector Directional Chevron */}
-                  <div style={{ color: isCurrentUser ? '#CCFF00' : '#2a2a2a' }}>
-                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-                      <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
-                    </svg>
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        )}
-      </main>
+        </>
+      )}
     </div>
   )
 }
+
+const RANK_COLORS = ['#000', '#000', '#fff']
 
 export default Leaderboard
