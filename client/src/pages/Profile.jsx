@@ -5,13 +5,8 @@ import { getRunHistory } from '../api/runs'
 import { getMyTiles } from '../api/territory'
 import { getMyRank } from '../api/leaderboard'
 
-const MAX_AVATAR_BYTES = 1.5 * 1024 * 1024 // 1.5MB cap — localStorage quotas are small (~5-10MB total)
+const MAX_AVATAR_BYTES = 1.5 * 1024 * 1024
 
-// --- Streak math -----------------------------------------------------
-// A streak day = at least one run logged that calendar day (local time).
-// Current streak = consecutive days ending today OR yesterday (so it
-// doesn't zero out at midnight before today's run happens).
-// Best streak = longest consecutive run anywhere in history.
 function computeStreaks(runs) {
   if (!runs || runs.length === 0) {
     return { current: 0, best: 0, last7: [], activeToday: false }
@@ -28,7 +23,6 @@ function computeStreaks(runs) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  // Walk backwards from today (or yesterday if today has no run yet)
   let cursor = new Date(today)
   const activeToday = uniqueDays.has(dayKey(cursor))
   if (!activeToday) {
@@ -41,7 +35,6 @@ function computeStreaks(runs) {
     cursor = new Date(cursor.getTime() - dayMs)
   }
 
-  // Best streak: sort unique day timestamps ascending, walk for max run length
   const sortedDays = Array.from(uniqueDays)
     .map((key) => {
       const [y, m, d] = key.split('-').map(Number)
@@ -61,7 +54,6 @@ function computeStreaks(runs) {
   }
   best = Math.max(best, current)
 
-  // Last 7 calendar days, oldest -> newest, for the mini strip
   const last7 = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date(today.getTime() - i * dayMs)
@@ -73,6 +65,23 @@ function computeStreaks(runs) {
   }
 
   return { current, best, last7, activeToday }
+}
+
+function formatPace(distMeters, durationSecs) {
+  if (!distMeters || !durationSecs) return '--'
+  const totalMin = durationSecs / 60
+  const distKm = distMeters / 1000
+  const pace = totalMin / distKm
+  const mins = Math.floor(pace)
+  const secs = Math.round((pace - mins) * 60)
+  return `${mins}:${String(secs).padStart(2, '0')}`
+}
+
+function formatDuration(totalSeconds) {
+  if (!totalSeconds) return '0h 0m'
+  const hours = Math.floor(totalSeconds / 3600)
+  const mins = Math.floor((totalSeconds % 3600) / 60)
+  return `${hours}h ${mins}m`
 }
 
 function Profile() {
@@ -91,7 +100,6 @@ function Profile() {
     try {
       return localStorage.getItem(`runzone_avatar_${user?.username}`) || null
     } catch {
-      // localStorage can throw in private-browsing / disabled-storage contexts
       return null
     }
   })
@@ -104,7 +112,7 @@ function Profile() {
           getMyTiles(),
           getMyRank(),
         ])
-        setRuns(runsRes.data.runs)
+        setRuns(runsRes.data.runs || [])
         setTiles(tilesRes.data)
         setRank(rankRes.data.rank)
       } catch (err) {
@@ -128,7 +136,7 @@ function Profile() {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0]
-    e.target.value = '' // allow re-selecting the same file later
+    e.target.value = ''
     if (!file) return
 
     setAvatarError('')
@@ -152,8 +160,6 @@ function Profile() {
       try {
         localStorage.setItem(`runzone_avatar_${user?.username}`, base64String)
       } catch {
-        // Quota exceeded or storage unavailable — keep the image visible
-        // for this session but tell the operative it won't persist.
         setAvatarError('Saved for this session only — device storage is full.')
       }
     }
@@ -167,6 +173,7 @@ function Profile() {
   }
 
   const totalDistance = runs.reduce((sum, run) => sum + (run.distance_meters || 0), 0)
+  const totalDuration = runs.reduce((sum, run) => sum + (run.duration_seconds || 0), 0)
   const level = Math.max(1, Math.floor(totalDistance / 10000) + 1)
   const nextLevelDistance = level * 10000
   const progressPercent = Math.min(100, (totalDistance / nextLevelDistance) * 100)
@@ -174,11 +181,84 @@ function Profile() {
 
   const streak = useMemo(() => computeStreaks(runs), [runs])
 
+  // Personal Records
+  const bestRun = useMemo(() => {
+    if (!runs.length) return null
+    return runs.reduce((best, run) =>
+      (run.tiles_captured || 0) > (best.tiles_captured || 0) ? run : best
+    )
+  }, [runs])
+
+  const longestRun = useMemo(() => {
+    if (!runs.length) return null
+    return runs.reduce((best, run) =>
+      (run.distance_meters || 0) > (best.distance_meters || 0) ? run : best
+    )
+  }, [runs])
+
+  const fastestPace = useMemo(() => {
+    if (!runs.length) return null
+    let best = null
+    let bestVal = Infinity
+    runs.forEach(run => {
+      if (run.distance_meters >= 500 && run.duration_seconds > 0) {
+        const pace = (run.duration_seconds / 60) / (run.distance_meters / 1000)
+        if (pace < bestVal) {
+          bestVal = pace
+          best = run
+        }
+      }
+    })
+    return best ? { pace: bestVal, run: best } : null
+  }, [runs])
+
+  // Oldest held tile
+  const oldestTile = useMemo(() => {
+    if (!tiles?.tiles?.length) return null
+    return tiles.tiles.reduce((oldest, t) =>
+      new Date(t.captured_at) < new Date(oldest.captured_at) ? t : oldest
+    )
+  }, [tiles])
+
+  // Activity grid (last 7 weeks)
+  const activityGrid = useMemo(() => {
+    const cells = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    for (let i = 48; i >= 0; i--) {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      const active = runs.some(r =>
+        new Date(r.created_at).toDateString() === d.toDateString()
+      )
+      cells.push({ date: d, active })
+    }
+    return cells
+  }, [runs])
+
+  // Account age
+  const accountAge = useMemo(() => {
+    if (!user?.created_at) return null
+    const created = new Date(user.created_at)
+    const now = new Date()
+    const months = (now.getFullYear() - created.getFullYear()) * 12
+      + now.getMonth() - created.getMonth()
+    if (months < 1) return 'Less than a month'
+    const years = Math.floor(months / 12)
+    const remainingMonths = months % 12
+    if (years > 0) return `${years}y ${remainingMonths}m`
+    return `${months}m`
+  }, [user])
+
   const honors = [
-    { icon: 'FC', label: 'First Capture', earned: runs.length > 0 },
-    { icon: 'NO', label: 'Night Ops', earned: false },
-    { icon: '50', label: '50KM Club', earned: totalDistance >= 50000 },
-    { icon: 'S7', label: 'Sector Control', earned: (tiles?.total_tiles || 0) >= 10 },
+    { icon: '🏃', label: 'First Step', desc: 'Complete your first run', earned: runs.length > 0 },
+    { icon: '🗺', label: 'First Tile', desc: 'Capture your first territory', earned: (tiles?.total_tiles || 0) >= 1 },
+    { icon: '🔥', label: 'Streak Master', desc: '7-day run streak', earned: streak.best >= 7 },
+    { icon: '📏', label: '50K Club', desc: 'Run 50 KM total', earned: totalDistance >= 50000 },
+    { icon: '🏰', label: 'Land Baron', desc: 'Own 10 territories', earned: (tiles?.total_tiles || 0) >= 10 },
+    { icon: '⚡', label: 'Speed Demon', desc: 'Sub-5min/km pace', earned: fastestPace && fastestPace.pace <= 5 },
+    { icon: '🌙', label: 'Night Ops', desc: 'Run after sunset', earned: false },
+    { icon: '👑', label: 'Top 10', desc: 'Reach rank #10', earned: rank && rank <= 10 },
   ]
 
   if (loading) {
@@ -193,7 +273,7 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#080808' }}>
+    <div className="min-h-screen pb-28" style={{ background: '#080808' }}>
       <style>{`
         @keyframes rz-rise {
           from { opacity: 0; transform: translateY(10px); }
@@ -216,7 +296,6 @@ function Profile() {
         }
       `}</style>
 
-      {/* Hidden File Input */}
       <input
         type="file"
         ref={fileInputRef}
@@ -233,11 +312,9 @@ function Profile() {
           </div>
           <span className="font-black text-white tracking-wider">RUNZONE</span>
         </div>
-        <button style={{ color: '#666' }} aria-label="Settings">
-          <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
-            <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-xs" style={{ color: '#555' }}>ID: {user?.id}</span>
+        </div>
       </div>
 
       {/* Operative Card */}
@@ -249,7 +326,6 @@ function Profile() {
           <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10" style={{ background: '#CCFF00' }} />
 
           <div className="flex items-center gap-4 mb-4">
-            {/* Avatar block */}
             <div className="flex-shrink-0">
               <div
                 onClick={handleAvatarClick}
@@ -301,6 +377,9 @@ function Profile() {
                   {(totalDistance / 1000).toFixed(1)} km completed
                 </div>
               </div>
+              <div className="text-[10px] font-bold mt-1" style={{ color: '#555' }}>
+                {accountAge ? `Active · ${accountAge} on grid` : ''}
+              </div>
             </div>
           </div>
 
@@ -320,9 +399,9 @@ function Profile() {
             </div>
             <div className="rounded-xl p-4" style={{ background: '#0e0e0e' }}>
               <div className="text-3xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
-                {level}
+                {formatDuration(totalDuration)}
               </div>
-              <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Level</div>
+              <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Total Time</div>
             </div>
           </div>
 
@@ -349,9 +428,59 @@ function Profile() {
             <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#fff' }}>
               OPS {runs.length}
             </div>
+            {oldestTile && (
+              <div className="px-3 py-1 rounded-full text-[10px] font-black" style={{ background: '#151515', color: '#fff' }}>
+                OLDEST TILE: {new Date(oldestTile.captured_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Personal Records */}
+      {runs.length > 0 && (
+        <div className="px-6 mb-4 rz-stagger" style={{ animationDelay: '90ms' }}>
+          <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>Personal Records</div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card text-center">
+              <div className="text-lg mb-1">🏆</div>
+              <div className="text-xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                {bestRun ? (bestRun.distance_meters / 1000).toFixed(1) : '--'}
+              </div>
+              <div className="label-upper mt-1">Best KM</div>
+              {bestRun && (
+                <div className="text-[10px] mt-1" style={{ color: '#666' }}>
+                  {bestRun.tiles_captured || 0} tiles
+                </div>
+              )}
+            </div>
+            <div className="card text-center">
+              <div className="text-lg mb-1">🎯</div>
+              <div className="text-xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                {longestRun ? longestRun.tiles_captured || 0 : '--'}
+              </div>
+              <div className="label-upper mt-1">Most Tiles</div>
+              {longestRun && (
+                <div className="text-[10px] mt-1" style={{ color: '#666' }}>
+                  {(longestRun.distance_meters / 1000).toFixed(1)} km
+                </div>
+              )}
+            </div>
+            <div className="card text-center">
+              <div className="text-lg mb-1">⚡</div>
+              <div className="text-xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+                {fastestPace ? formatPace(fastestPace.run.distance_meters, fastestPace.run.duration_seconds) : '--'}
+              </div>
+              <div className="label-upper mt-1">Best Pace</div>
+              {fastestPace && (
+                <div className="text-[10px] mt-1" style={{ color: '#666' }}>
+                  min/km
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Deployment Streak */}
       <div className="px-6 mb-4 rz-stagger" style={{ animationDelay: '120ms' }}>
@@ -416,43 +545,84 @@ function Profile() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="px-6 mb-4 rz-stagger" style={{ animationDelay: '160ms' }}>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="card">
-            <div className="text-3xl font-black text-white">{tiles?.total_tiles || 0}</div>
-            <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Territories</div>
+      {/* Activity Calendar */}
+      <div className="px-6 mb-4 rz-stagger" style={{ animationDelay: '150ms' }}>
+        <div className="label-upper mb-3 flex items-center gap-2" style={{ color: '#CCFF00' }}>
+          <span>ACTIVITY CALENDAR</span>
+          <span className="text-[9px]" style={{ color: '#666' }}>LAST 49 DAYS</span>
+        </div>
+        <div className="card">
+          <div className="grid grid-cols-7 gap-1.5">
+            {activityGrid.map((cell, i) => (
+              <div
+                key={i}
+                className="aspect-square rounded-sm transition-all duration-200"
+                style={{
+                  background: cell.active ? '#CCFF00' : '#151515',
+                  border: `1px solid ${cell.active ? 'rgba(204,255,0,0.3)' : '#1f1f1f'}`,
+                  boxShadow: cell.active ? '0 0 4px rgba(204,255,0,0.2)' : 'none',
+                }}
+                title={cell.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              />
+            ))}
           </div>
-          <div className="card">
-            <div className="text-3xl font-black text-white">{runs.length}</div>
-            <div className="label-upper mt-1">Total Runs</div>
-          </div>
-          <div className="card">
-            <div className="text-3xl font-black text-white">
-              {runs.length > 0 ? Math.round(totalDistance / runs.length / 1000) : 0}
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-bold" style={{ color: '#555' }}>Less</span>
+              <div className="w-3 h-3 rounded-sm" style={{ background: '#151515', border: '1px solid #1f1f1f' }} />
+              <div className="w-3 h-3 rounded-sm" style={{ background: '#CCFF00', border: '1px solid rgba(204,255,0,0.3)' }} />
+              <span className="text-[9px] font-bold" style={{ color: '#555' }}>More</span>
             </div>
-            <div className="label-upper mt-1">Avg KM</div>
+            <span className="text-[9px] font-bold" style={{ color: '#666' }}>
+              {activityGrid.filter(c => c.active).length} active days
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Honors */}
-      <div className="px-6 mb-4 rz-stagger" style={{ animationDelay: '200ms' }}>
+      {/* Stats Grid */}
+      <div className="px-6 mb-4 rz-stagger" style={{ animationDelay: '180ms' }}>
+        <div className="grid grid-cols-4 gap-3">
+          <div className="card text-center">
+            <div className="text-xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>{tiles?.total_tiles || 0}</div>
+            <div className="label-upper mt-1" style={{ color: '#CCFF00' }}>Territories</div>
+          </div>
+          <div className="card text-center">
+            <div className="text-xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>{runs.length}</div>
+            <div className="label-upper mt-1">Total Runs</div>
+          </div>
+          <div className="card text-center">
+            <div className="text-xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+              {runs.length > 0 ? Math.round(totalDistance / runs.length / 1000) : 0}
+            </div>
+            <div className="label-upper mt-1">Avg KM</div>
+          </div>
+          <div className="card text-center">
+            <div className="text-xl font-black text-white" style={{ fontFamily: 'Space Grotesk' }}>
+              {runs.length > 0 ? Math.round(totalDuration / runs.length / 60) : 0}
+            </div>
+            <div className="label-upper mt-1">Avg Min</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Honors & Commendations */}
+      <div className="px-6 mb-4 rz-stagger" style={{ animationDelay: '210ms' }}>
         <div className="label-upper mb-3" style={{ color: '#CCFF00' }}>Honors & Commendations</div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-3">
           {honors.map((honor, i) => (
             <div
               key={i}
-              className="card text-center py-3 transition-opacity"
-              style={{ opacity: honor.earned ? 1 : 0.3 }}
+              className="rounded-xl p-3 text-center transition-all duration-300"
+              style={{
+                background: honor.earned ? 'rgba(204,255,0,0.04)' : '#111',
+                border: `1px solid ${honor.earned ? 'rgba(204,255,0,0.2)' : '#1f1f1f'}`,
+                opacity: honor.earned ? 1 : 0.4,
+              }}
             >
-              <div
-                className="w-10 h-10 mx-auto mb-2 flex items-center justify-center rounded-lg text-xs font-black"
-                style={{ background: '#151515', color: '#CCFF00', border: '1px solid #222' }}
-              >
-                {honor.icon}
-              </div>
-              <div className="text-xs font-bold text-white leading-tight">{honor.label}</div>
+              <div className="text-2xl mb-1">{honor.icon}</div>
+              <div className="text-[10px] font-bold text-white leading-tight">{honor.label}</div>
+              <div className="text-[8px] mt-1" style={{ color: '#666' }}>{honor.desc}</div>
             </div>
           ))}
         </div>
@@ -483,14 +653,14 @@ function Profile() {
                     {index === 0 ? 'SECTOR BREACH' : index === 1 ? 'DAWN PATROL' : 'TERRITORY CLAIM'}
                   </div>
                   <div className="label-upper mt-0.5">
-                    {new Date(run.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {Math.floor((run.duration_seconds || 0) / 60)}min
+                    {new Date(run.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {Math.floor((run.duration_seconds || 0) / 60)}min · {run.tiles_captured || 0} tiles
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-black" style={{ color: '#CCFF00' }}>
                     {(run.distance_meters / 1000).toFixed(1)}k
                   </div>
-                  <div className="label-upper">meters</div>
+                  <div className="label-upper">km</div>
                 </div>
               </div>
             ))}
