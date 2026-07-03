@@ -1,22 +1,39 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { startRun, endRun } from '../api/runs'
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
 
-// Constants for performance
-const EARTH_RADIUS_METERS = 6371000
-const MIN_DISTANCE_THRESHOLD_METERS = 5 // Filters out minor GPS jitter
+// Fix leaflet marker icon
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
+
+// Auto-follow user position on map
+function MapFollower({ position }) {
+  const map = useMap()
+  useEffect(() => {
+    if (position) {
+      map.setView([position.lat, position.lng], map.getZoom())
+    }
+  }, [position])
+  return null
+}
 
 function getDistance(lat1, lng1, lat2, lng2) {
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLng = ((lng2 - lng1) * Math.PI) / 180
+  const R = 6371000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2)
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return EARTH_RADIUS_METERS * c
+  return R * c
 }
 
 function formatTime(seconds) {
@@ -28,8 +45,6 @@ function formatTime(seconds) {
 
 function LiveRun() {
   const navigate = useNavigate()
-  
-  // State Management
   const [runId, setRunId] = useState(null)
   const [isRunning, setIsRunning] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -40,71 +55,46 @@ function LiveRun() {
   const [error, setError] = useState('')
   const [finishing, setFinishing] = useState(false)
   const [speed, setSpeed] = useState(0)
+  const [showMap, setShowMap] = useState(false)
 
-  // Refs for tracking system variables without triggering re-renders
   const watchId = useRef(null)
   const timerRef = useRef(null)
-  const wakeLockRef = useRef(null)
-  
-  // Keep track of GPS updates safely using refs to prevent stale closure bugs
-  const trackingData = useRef({ lastPos: null, lastTime: null })
+  const lastPos = useRef(null)
+  const lastTime = useRef(null)
 
-  // Request Wake Lock to keep the mobile screen from sleeping during a run
-  const requestWakeLock = async () => {
-    if ('wakeLock' in navigator) {
-      try {
-        wakeLockRef.current = await navigator.wakeLock.request('screen')
-      } catch (err) {
-        console.warn('Wake Lock request failed:', err.message)
-      }
-    }
-  }
-
-  const releaseWakeLock = () => {
-    if (wakeLockRef.current) {
-      wakeLockRef.current.release().then(() => {
-        wakeLockRef.current = null
-      })
-    }
-  }
+  // Default center Kathmandu
+  const defaultCenter = [27.7103, 85.3222]
 
   const startGPS = () => {
     if (!navigator.geolocation) {
       setError('GPS not supported on this device.')
       return
     }
-
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
         setCurrentPos({ lat, lng })
         const now = Date.now()
-        const { lastPos, lastTime } = trackingData.current
-
-        if (lastPos) {
-          const dist = getDistance(lastPos.lat, lastPos.lng, lat, lng)
-          
-          if (dist > MIN_DISTANCE_THRESHOLD_METERS) {
-            const timeDiff = (now - lastTime) / 1000
-            // Guard against divide-by-zero or instantly fast telemetry jumps
-            const currentSpeed = timeDiff > 0 ? (dist / timeDiff) * 3.6 : 0
-            
+        if (lastPos.current) {
+          const dist = getDistance(lastPos.current.lat, lastPos.current.lng, lat, lng)
+          if (dist > 5) {
+            const timeDiff = (now - lastTime.current) / 1000
+            const currentSpeed = (dist / timeDiff) * 3.6
             setSpeed(currentSpeed.toFixed(1))
-            setDistance((prev) => prev + dist)
-            setCoordinates((prev) => [...prev, { lat, lng }])
-            
-            trackingData.current = { lastPos: { lat, lng }, lastTime: now }
+            setDistance(prev => prev + dist)
+            setCoordinates(prev => [...prev, { lat, lng }])
+            lastPos.current = { lat, lng }
+            lastTime.current = now
           }
         } else {
-          trackingData.current = { lastPos: { lat, lng }, lastTime: now }
+          lastPos.current = { lat, lng }
+          lastTime.current = now
           setCoordinates([{ lat, lng }])
+          setShowMap(true)
         }
       },
-      (err) => {
-        // Handle common code 1: Permission Denied, 2: Position Unavailable, 3: Timeout
-        setError(`GPS error: ${err.message}`)
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+      (err) => setError('GPS error: ' + err.message),
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
     )
   }
 
@@ -113,14 +103,11 @@ function LiveRun() {
       navigator.geolocation.clearWatch(watchId.current)
       watchId.current = null
     }
-    // Clear tracking telemetry on stop/pause
-    trackingData.current = { lastPos: null, lastTime: null }
   }
 
   const startTimer = () => {
-    if (timerRef.current) return
     timerRef.current = setInterval(() => {
-      setDuration((prev) => prev + 1)
+      setDuration(prev => prev + 1)
     }, 1000)
   }
 
@@ -132,16 +119,14 @@ function LiveRun() {
   }
 
   const handleStart = async () => {
-    setError('')
     try {
       const res = await startRun()
       setRunId(res.data.run.id)
       setIsRunning(true)
       startGPS()
       startTimer()
-      requestWakeLock()
     } catch (err) {
-      setError('Could not start run. Please check your connection and try again.')
+      setError('Could not start run. Try again.')
     }
   }
 
@@ -149,22 +134,18 @@ function LiveRun() {
     setIsPaused(true)
     stopGPS()
     stopTimer()
-    releaseWakeLock()
   }
 
   const handleResume = () => {
     setIsPaused(false)
     startGPS()
     startTimer()
-    requestWakeLock()
   }
 
   const handleFinish = async () => {
     setFinishing(true)
     stopGPS()
     stopTimer()
-    releaseWakeLock()
-    
     try {
       await endRun({
         run_id: runId,
@@ -174,36 +155,32 @@ function LiveRun() {
       })
       navigate('/dashboard')
     } catch (err) {
-      setError('Could not save run. Attempting to keep your data intact...')
+      setError('Could not save run. Try again.')
       setFinishing(false)
     }
   }
 
-  // Auto-cleanup on component unmount
   useEffect(() => {
     return () => {
       stopGPS()
       stopTimer()
-      releaseWakeLock()
     }
   }, [])
 
-  // Optimized Pace calculation with realistic bounds checking
-  const pace = useMemo(() => {
-    if (distance < 5 || duration === 0) return '0.0'
-    const kms = distance / 1000
-    const minutes = duration / 60
-    const rawPace = minutes / kms
-    
-    // Safety check: If pace calculation yields unrealistic numbers (> 60 min/km), treat as stationary
-    return rawPace > 60 ? '0.0' : rawPace.toFixed(1)
-  }, [distance, duration])
+  const pace = distance > 0 && duration > 0
+    ? ((duration / 60) / (distance / 1000)).toFixed(1)
+    : '0.0'
+
+  const routePoints = coordinates.map(c => [c.lat, c.lng])
+  const mapCenter = currentPos
+    ? [currentPos.lat, currentPos.lng]
+    : defaultCenter
 
   return (
     <div className="min-h-screen flex flex-col pb-24" style={{ background: '#080808' }}>
-      
+
       {/* Header */}
-      <header className="px-6 pt-12 pb-4 flex justify-between items-center">
+      <div className="px-6 pt-12 pb-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 border-2 flex items-center justify-center" style={{ borderColor: '#CCFF00' }}>
             <span className="text-xs font-black" style={{ color: '#CCFF00' }}>Z</span>
@@ -216,31 +193,61 @@ function LiveRun() {
             <span className="label-upper" style={{ color: '#CCFF00' }}>LIVE GPS</span>
           </div>
         )}
-      </header>
+      </div>
 
-      {/* Error Alert Display */}
+      {/* Error */}
       {error && (
-        <div role="alert" className="mx-6 mb-4 px-4 py-3 rounded-xl text-sm transition-all" style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.3)', color: '#ff4444' }}>
+        <div className="mx-6 mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.3)', color: '#ff4444' }}>
           {error}
         </div>
       )}
 
-      {/* Main Statistics Visualizer */}
-      <main className="px-6 mb-6 text-center">
-        <div className="label-upper mb-2" style={{ color: '#666' }}>Duration</div>
-        <div className="text-7xl font-black text-white mb-6" style={{ fontFamily: 'Space Grotesk', letterSpacing: '-2px' }}>
+      {/* Live Map */}
+      {showMap && (
+        <div className="px-6 mb-4">
+          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #222', height: '220px' }}>
+            <MapContainer
+              center={mapCenter}
+              zoom={16}
+              style={{ height: '100%', width: '100%' }}
+              zoomControl={false}
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; CARTO'
+              />
+              {/* Route line */}
+              {routePoints.length > 1 && (
+                <Polyline
+                  positions={routePoints}
+                  pathOptions={{ color: '#CCFF00', weight: 4, opacity: 0.9 }}
+                />
+              )}
+              {/* Current position marker */}
+              {currentPos && (
+                <Marker position={[currentPos.lat, currentPos.lng]}/>
+              )}
+              <MapFollower position={currentPos}/>
+            </MapContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Main Stats */}
+      <div className="px-6 mb-4 text-center">
+        <div className="label-upper mb-1" style={{ color: '#666' }}>Duration</div>
+        <div className="text-6xl font-black text-white mb-4" style={{ fontFamily: 'Space Grotesk', letterSpacing: '-2px' }}>
           {formatTime(duration)}
         </div>
-
         <div className="label-upper mb-1" style={{ color: '#CCFF00' }}>Total Distance</div>
-        <div className="text-6xl font-black lime-text-glow mb-1" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
+        <div className="text-5xl font-black lime-text-glow mb-1" style={{ color: '#CCFF00', fontFamily: 'Space Grotesk' }}>
           {(distance / 1000).toFixed(2)}
         </div>
-        <div className="text-white font-bold text-xl">km</div>
-      </main>
+        <div className="text-white font-bold text-lg">km</div>
+      </div>
 
-      {/* Secondary Metrics Dashboard Grid */}
-      <section className="px-6 mb-6" aria-label="Current Metrics">
+      {/* Secondary Stats */}
+      <div className="px-6 mb-6">
         <div className="grid grid-cols-3 gap-3">
           <div className="card text-center">
             <div className="text-xl font-black text-white">{speed}</div>
@@ -255,10 +262,10 @@ function LiveRun() {
             <div className="label-upper mt-1">points</div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Device Telemetry Diagnostics */}
-      <footer className="px-6 mb-6">
+      {/* GPS Status */}
+      <div className="px-6 mb-6">
         <div className="card flex items-center gap-3">
           <div className={`w-3 h-3 rounded-full ${currentPos ? 'live-pulse' : ''}`} style={{ background: currentPos ? '#CCFF00' : '#333' }}/>
           <div>
@@ -272,24 +279,19 @@ function LiveRun() {
             )}
           </div>
         </div>
-      </footer>
+      </div>
 
-      {/* Mission Controller Inputs */}
-      <div className="px-6 flex-1 flex flex-col justify-endß">
+      {/* Controls */}
+      <div className="px-6 flex-1 flex flex-col justify-end">
         {!isRunning ? (
-          <button
-            onClick={handleStart}
-            className="btn-lime py-6 text-xl tracking-widest active:scale-95 transition-transform"
-          >
+          <button onClick={handleStart} className="btn-lime py-6 text-xl tracking-widest">
             ⚡ INITIALIZE RUN
           </button>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            
             <button
               onClick={isPaused ? handleResume : handlePause}
-              aria-label={isPaused ? 'Resume Run' : 'Pause Run'}
-              className="w-28 h-28 rounded-full flex items-center justify-center lime-glow transition-all active:scale-90"
+              className="w-28 h-28 rounded-full flex items-center justify-center lime-glow transition-all"
               style={{ background: '#CCFF00' }}
             >
               {isPaused ? (
@@ -302,20 +304,17 @@ function LiveRun() {
                 </svg>
               )}
             </button>
-
             <div className="label-upper" style={{ color: '#666' }}>
               {isPaused ? 'TAP TO RESUME' : 'TAP TO PAUSE'}
             </div>
-
             <button
               onClick={handleFinish}
               disabled={finishing || coordinates.length === 0}
-              className="btn-ghost py-4 select-none"
+              className="btn-ghost py-4"
               style={{ opacity: finishing || coordinates.length === 0 ? 0.4 : 1 }}
             >
               {finishing ? 'SAVING MISSION...' : 'END MISSION'}
             </button>
-
           </div>
         )}
       </div>
@@ -325,4 +324,3 @@ function LiveRun() {
 }
 
 export default LiveRun
-
