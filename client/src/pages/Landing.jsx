@@ -29,7 +29,7 @@ function Landing() {
       />
 
       {/* Top bar */}
-      <div className="relative z-10 flex justify-between items-center px-6 pt-12">
+      <div className="relative z-10 flex justify-between items-center px-6 pt-12 pb-4">
         <div className="flex items-center gap-2">
           <div
             className="w-8 h-8 border-2 flex items-center justify-center"
@@ -47,8 +47,8 @@ function Landing() {
       </div>
 
       {/* Hero */}
-      <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-center justify-between px-6 lg:px-16 py-12 gap-12">
-        <div className="max-w-2xl">
+      <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between px-6 lg:px-16 py-8 lg:py-12 gap-12">
+        <div className="max-w-2xl w-full">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 mb-6 self-start">
             <div className="w-2 h-2 rounded-full live-pulse" style={{ background: '#CCFF00' }} />
@@ -58,7 +58,7 @@ function Landing() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-black leading-none mb-6 uppercase tracking-tight">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-none mb-6 uppercase tracking-tight">
             <span className="text-white">RUN.</span>
             <br />
             <span className="text-white">CLAIM.</span>
@@ -68,7 +68,7 @@ function Landing() {
             </span>
           </h1>
 
-          <p className="text-lg mb-10 max-w-xl leading-relaxed text-gray-300">
+          <p className="text-base sm:text-lg mb-10 max-w-xl leading-relaxed text-gray-300">
             Transform every run into a strategic battle for territory. Track your routes,
             expand your influence across the city, and compete with runners to dominate the map.
           </p>
@@ -89,16 +89,16 @@ function Landing() {
           </div>
 
           {/* CTAs */}
-          <div className="flex flex-col gap-3">
-            <Link to="/signup" className="btn-lime text-center block">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link to="/signup" className="btn-lime text-center block sm:max-w-[200px]">
               GET STARTED
             </Link>
-            <Link to="/login" className="btn-ghost text-center block">
+            <Link to="/login" className="btn-ghost text-center block sm:max-w-[160px]">
               SIGN IN
             </Link>
           </div>
 
-          <p className="text-center text-xs mt-6" style={{ color: '#444' }}>
+          <p className="text-center sm:text-left text-xs mt-6" style={{ color: '#444' }}>
             By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>
         </div>
@@ -141,9 +141,100 @@ function Landing() {
         </div>
       </div>
 
+      {/* How It Works */}
+      <div className="relative z-10 px-6 lg:px-16 py-20 max-w-6xl mx-auto">
+        <div className="text-center mb-12">
+          <div className="label-upper inline-block mb-3" style={{ color: '#CCFF00' }}>How It Works</div>
+          <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight">
+            Run. Claim. Dominate.
+          </h2>
+          <p className="text-gray-500 mt-3 max-w-lg mx-auto text-sm">
+            Three simple steps to start conquering your city.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            {
+              step: '01',
+              title: 'Go for a Run',
+              desc: 'Lace up and head out. Any run counts — track your route, distance, and pace in real-time.',
+              icon: '🏃'
+            },
+            {
+              step: '02',
+              title: 'Capture Territory',
+              desc: 'Every kilometer you run claims new tiles on the map. Build your zone and defend it from rivals.',
+              icon: '🗺'
+            },
+            {
+              step: '03',
+              title: 'Climb the Ranks',
+              desc: 'Compete with runners in your city. The more territory you own, the higher you rise on the leaderboard.',
+              icon: '👑'
+            }
+          ].map((item) => (
+            <div
+              key={item.step}
+              className="rounded-2xl p-6 text-center"
+              style={{
+                background: 'linear-gradient(135deg, #111 0%, #1a1a1a 100%)',
+                border: '1px solid #222'
+              }}
+            >
+              <div className="text-4xl mb-4">{item.icon}</div>
+              <div className="text-xs font-black tracking-widest mb-2" style={{ color: '#CCFF00' }}>{item.step}</div>
+              <div className="text-lg font-black text-white mb-2">{item.title}</div>
+              <p className="text-sm" style={{ color: '#888' }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="relative z-10 px-6 lg:px-16 py-16 text-center">
+        <div
+          className="rounded-3xl p-10 max-w-3xl mx-auto relative overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #CCFF00 0%, #B8E600 100%)',
+            color: '#000'
+          }}
+        >
+          <div className="absolute top-0 right-0 w-60 h-60 rounded-full blur-3xl opacity-20 bg-white" />
+          <h2 className="text-3xl sm:text-4xl font-black uppercase mb-4">Start Your Conquest</h2>
+          <p className="text-lg opacity-80 mb-8 max-w-md mx-auto">
+            Join 500+ runners already claiming territory in your city.
+          </p>
+          <Link to="/signup" className="inline-block px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider" style={{ background: '#000', color: '#CCFF00' }}>
+            Create Free Account
+          </Link>
+          <p className="text-xs opacity-60 mt-4">No credit card required. Free to play.</p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="relative z-10 px-6 lg:px-16 py-8 border-t" style={{ borderColor: '#111' }}>
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 border flex items-center justify-center" style={{ borderColor: '#CCFF00' }}>
+              <span className="text-xs font-black" style={{ color: '#CCFF00' }}>Z</span>
+            </div>
+            <span className="font-black text-sm tracking-wider text-white">RUNZONE</span>
+          </div>
+          <div className="flex items-center gap-6 text-xs" style={{ color: '#444' }}>
+            <span>Terms of Service</span>
+            <span>Privacy Policy</span>
+            <span>Contact</span>
+          </div>
+          <span className="text-xs" style={{ color: '#333' }}>
+            &copy; 2026 RunZone. All rights reserved.
+          </span>
+        </div>
+      </div>
+
       {/* Bottom glow */}
       <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-48 rounded-full blur-3xl opacity-30"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[500px] h-48 rounded-full blur-3xl opacity-30 pointer-events-none"
         style={{ background: '#CCFF00' }}
       />
     </div>
