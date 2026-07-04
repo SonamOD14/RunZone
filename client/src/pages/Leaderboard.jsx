@@ -95,7 +95,7 @@ function Leaderboard() {
   }
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: '#080808' }}>
+    <div className="min-h-screen" style={{ background: '#080808' }}>
 
       {/* Header */}
       <div className="px-6 pt-12 pb-2" style={{ animation: 'fadeIn 0.4s ease-out' }}>
