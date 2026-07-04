@@ -28,6 +28,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       <Navbar />
+      <div className="pb-24">
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Landing />} />
@@ -50,6 +51,7 @@ function App() {
         } />
 
       </Routes>
+      </div>
     </div>
   )
 }
