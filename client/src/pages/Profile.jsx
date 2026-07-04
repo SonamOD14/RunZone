@@ -273,7 +273,7 @@ function Profile() {
   }
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: '#080808' }}>
+    <div className="min-h-screen" style={{ background: '#080808' }}>
       <style>{`
         @keyframes rz-rise {
           from { opacity: 0; transform: translateY(10px); }
