@@ -177,7 +177,7 @@ function LiveRun() {
     : defaultCenter
 
   return (
-    <div className="min-h-screen flex flex-col pb-24" style={{ background: '#080808' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
 
       {/* Header */}
       <div className="px-6 pt-12 pb-4 flex justify-between items-center">
