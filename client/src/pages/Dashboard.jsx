@@ -158,7 +158,7 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#080808' }}>
+    <div className="min-h-screen" style={{ background: '#080808' }}>
 
       {/* Header */}
       <div className="px-6 pt-12 pb-5 flex justify-between items-center" style={{ animation: 'fadeIn 0.4s ease-out' }}>
