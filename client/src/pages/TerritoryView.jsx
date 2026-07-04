@@ -78,7 +78,7 @@ function TerritoryView() {
     : defaultCenter
 
   return (
-    <div className="min-h-screen pb-24" style={{ background: '#080808' }}>
+    <div className="min-h-screen" style={{ background: '#080808' }}>
 
       {/* Header */}
       <div className="px-6 pt-12 pb-4">
