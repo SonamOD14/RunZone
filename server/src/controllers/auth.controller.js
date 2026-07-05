@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/user.model');
+const GoogleAuthService = require('../services/googleAuth');
 require('dotenv').config();
 
 const AuthController = {
@@ -97,6 +98,75 @@ const AuthController = {
       });
     } catch (err) {
       next(err);
+    }
+  },
+
+  // GET /api/auth/google - redirect to Google OAuth
+  async googleAuth(req, res, next) {
+    try {
+      const url = GoogleAuthService.getAuthURL();
+      res.redirect(url);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // GET /api/auth/google/callback - handle Google OAuth callback
+  async googleCallback(req, res, next) {
+    try {
+      const { code } = req.query;
+
+      if (!code) {
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+      }
+
+      const googleUser = await GoogleAuthService.getGoogleUser(code);
+
+      // Check if user already exists with this Google ID
+      let user = await UserModel.findByGoogleId(googleUser.id);
+
+      if (user) {
+        // Existing Google user - log them in
+        await UserModel.updateLastActive(user.id);
+      } else {
+        // Check if email already exists (link Google account)
+        const existingUser = await UserModel.findByEmail(googleUser.email);
+
+        if (existingUser) {
+          // Link Google account to existing user
+          user = await UserModel.linkGoogleAccount(existingUser.id, googleUser.id);
+        } else {
+          // Create new user from Google profile
+          const username = googleUser.name
+            ? googleUser.name.replace(/\s+/g, '_').toLowerCase()
+            : googleUser.email.split('@')[0];
+
+          // Check if username is taken
+          const existingUsername = await UserModel.findByUsername(username);
+          const finalUsername = existingUsername
+            ? `${username}_${Math.floor(Math.random() * 10000)}`
+            : username;
+
+          user = await UserModel.createFromGoogle({
+            google_id: googleUser.id,
+            email: googleUser.email,
+            username: finalUsername,
+            avatar_url: googleUser.picture || null,
+          });
+        }
+      }
+
+      // Generate JWT
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // Redirect to client with token
+      res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+    } catch (err) {
+      res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
     }
   },
 

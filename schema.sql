@@ -7,10 +7,17 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),
+  google_id VARCHAR(255) UNIQUE,
+  avatar_url TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   last_active TIMESTAMP DEFAULT NOW()
 );
+
+-- Migration for existing databases:
+-- ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 -- Runs table (each running session)
 CREATE TABLE IF NOT EXISTS runs (

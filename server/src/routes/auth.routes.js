@@ -6,6 +6,8 @@ const verifyToken = require('../middleware/auth');
 // Public routes - no token needed
 router.post('/signup', AuthController.signup);
 router.post('/login', AuthController.login);
+router.get('/google', AuthController.googleAuth);
+router.get('/google/callback', AuthController.googleCallback);
 
 // Protected route - token required
 router.get('/me', verifyToken, AuthController.getMe);

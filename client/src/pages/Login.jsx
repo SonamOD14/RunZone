@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { login as loginAPI } from '../api/auth'
+import { API_URL } from '../api/config'
 
 function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
@@ -150,7 +151,10 @@ function Login() {
 
         {/* Social buttons */}
         <div className="flex justify-center mb-6">
-          <button className="btn-ghost flex items-center justify-center gap-2 py-3 px-8">
+          <button
+            onClick={() => window.location.href = `${API_URL}/api/auth/google`}
+            className="btn-ghost flex items-center justify-center gap-2 py-3 px-8"
+          >
             <span className="text-sm">G</span>
             <span className="text-sm">GOOGLE</span>
           </button>

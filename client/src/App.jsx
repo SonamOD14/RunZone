@@ -6,6 +6,7 @@ import Navbar from './components/Navbar'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import AuthCallback from './pages/AuthCallback'
 import Dashboard from './pages/Dashboard'
 import LiveRun from './pages/LiveRun'
 import TerritoryView from './pages/TerritoryView'
@@ -35,6 +36,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
 
         {/* Protected routes - must be logged in */}
         <Route path="/dashboard" element={
