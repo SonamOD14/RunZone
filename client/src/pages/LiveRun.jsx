@@ -4,6 +4,7 @@ import { startRun, endRun } from '../api/runs'
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+import useGPS from '../hooks/useGPS'
 
 // Fix leaflet marker icon
 delete L.Icon.Default.prototype._getIconUrl
@@ -13,7 +14,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-// Auto-follow user position on map
 function MapFollower({ position }) {
   const map = useMap()
   useEffect(() => {
@@ -45,6 +45,7 @@ function formatTime(seconds) {
 
 function LiveRun() {
   const navigate = useNavigate()
+  const { permission } = useGPS()
   const [runId, setRunId] = useState(null)
   const [isRunning, setIsRunning] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -62,7 +63,6 @@ function LiveRun() {
   const lastPos = useRef(null)
   const lastTime = useRef(null)
 
-  // Default center Kathmandu
   const defaultCenter = [27.7103, 85.3222]
 
   const startGPS = () => {
@@ -177,7 +177,7 @@ function LiveRun() {
     : defaultCenter
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080808' }}>
+    <div className="min-h-screen flex flex-col pb-28" style={{ background: '#080808' }}>
 
       {/* Header */}
       <div className="px-6 pt-12 pb-4 flex justify-between items-center">
@@ -194,6 +194,30 @@ function LiveRun() {
           </div>
         )}
       </div>
+
+      {/* GPS Permission Prompt */}
+      {permission === 'denied' && (
+        <div className="mx-6 mb-4 px-4 py-5 rounded-2xl text-center" style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.3)' }}>
+          <div className="text-3xl mb-2">📍</div>
+          <div className="text-white font-black mb-1">Location Access Denied</div>
+          <p className="text-sm mb-3" style={{ color: '#ff4444' }}>
+            RunZone needs GPS to track your run and capture territory.
+          </p>
+          <p className="text-xs" style={{ color: '#666' }}>
+            Go to phone Settings → Browser → Location → Allow
+          </p>
+        </div>
+      )}
+
+      {permission === 'prompt' && !isRunning && (
+        <div className="mx-6 mb-4 px-4 py-5 rounded-2xl text-center" style={{ background: 'rgba(204,255,0,0.05)', border: '1px solid rgba(204,255,0,0.2)' }}>
+          <div className="text-3xl mb-2">📍</div>
+          <div className="text-white font-black mb-1">Allow Location Access</div>
+          <p className="text-sm" style={{ color: '#666' }}>
+            Accept the location prompt to start tracking your run.
+          </p>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -216,14 +240,12 @@ function LiveRun() {
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; CARTO'
               />
-              {/* Route line */}
               {routePoints.length > 1 && (
                 <Polyline
                   positions={routePoints}
                   pathOptions={{ color: '#CCFF00', weight: 4, opacity: 0.9 }}
                 />
               )}
-              {/* Current position marker */}
               {currentPos && (
                 <Marker position={[currentPos.lat, currentPos.lng]}/>
               )}
@@ -247,7 +269,7 @@ function LiveRun() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="px-6 mb-6">
+      <div className="px-6 mb-4">
         <div className="grid grid-cols-3 gap-3">
           <div className="card text-center">
             <div className="text-xl font-black text-white">{speed}</div>
@@ -282,9 +304,14 @@ function LiveRun() {
       </div>
 
       {/* Controls */}
-      <div className="px-6 flex-1 flex flex-col justify-end">
+      <div className="px-6 flex-1 flex flex-col justify-end pb-4">
         {!isRunning ? (
-          <button onClick={handleStart} className="btn-lime py-6 text-xl tracking-widest">
+          <button
+            onClick={handleStart}
+            className="btn-lime py-6 text-xl tracking-widest"
+            disabled={permission === 'denied'}
+            style={{ opacity: permission === 'denied' ? 0.4 : 1 }}
+          >
             ⚡ INITIALIZE RUN
           </button>
         ) : (
