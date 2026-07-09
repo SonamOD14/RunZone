@@ -312,6 +312,7 @@ function LiveRun() {
             disabled={permission === 'denied'}
             style={{ opacity: permission === 'denied' ? 0.4 : 1 }}
           >
+
             ⚡ INITIALIZE RUN
           </button>
         ) : (
@@ -349,5 +350,6 @@ function LiveRun() {
     </div>
   )
 }
+
 
 export default LiveRun
