@@ -34,14 +34,12 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token')
     setUser(null)
   }
-
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   )
 }
-
 // Custom hook - any component can call useAuth() to get user data
 export function useAuth() {
   return useContext(AuthContext)
