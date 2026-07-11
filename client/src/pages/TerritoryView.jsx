@@ -166,10 +166,10 @@ function TerritoryView() {
       {/* MAP TAB */}
       {activeTab === 'map' && (
         <div className="px-6">
-          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #222', height: '60vh' }}>
+          <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #222', height: '1050px' }}>
             <MapContainer
               center={mapCenter}
-              zoom={15}
+              zoom={13}
               style={{ height: '100%', width: '100%' }}
               zoomControl={true}
             >
