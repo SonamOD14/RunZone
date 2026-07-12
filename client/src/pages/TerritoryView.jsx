@@ -169,7 +169,7 @@ function TerritoryView() {
           <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #222', height: '1050px' }}>
             <MapContainer
               center={mapCenter}
-              zoom={13}
+              zoom={15}
               style={{ height: '100%', width: '100%' }}
               zoomControl={true}
             >
