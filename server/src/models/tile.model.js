@@ -67,6 +67,59 @@ const TileModel = {
       [tile_x, tile_y, zoom]
     );
     return result.rows[0];
+  },
+
+  // Get capture history for a specific tile
+  async getHistoryByTile({ tile_x, tile_y, zoom }) {
+    const result = await pool.query(
+      `SELECT th.*, u.username
+       FROM tile_history th
+       LEFT JOIN users u ON th.captured_by = u.id
+       WHERE th.tile_x = $1 AND th.tile_y = $2 AND th.zoom = $3
+       ORDER BY th.captured_at DESC
+       LIMIT 20`,
+      [tile_x, tile_y, zoom]
+    );
+    return result.rows;
+  },
+
+  // Get capture history for a user
+  async getHistoryByUser(user_id) {
+    const result = await pool.query(
+      `SELECT th.*, u.username
+       FROM tile_history th
+       LEFT JOIN users u ON th.captured_by = u.id
+       WHERE th.captured_by = $1
+       ORDER BY th.captured_at DESC
+       LIMIT 50`,
+      [user_id]
+    );
+    return result.rows;
+  },
+
+  // Abandon (release) a tile
+  async abandonTile({ tile_x, tile_y, zoom, owner_id }) {
+    const result = await pool.query(
+      `UPDATE tiles
+       SET owner_id = NULL, last_visited = NOW()
+       WHERE tile_x = $1 AND tile_y = $2 AND zoom = $3 AND owner_id = $4
+       RETURNING *`,
+      [tile_x, tile_y, zoom, owner_id]
+    );
+    return result.rows[0];
+  },
+
+  // Get territory summary stats
+  async getStats() {
+    const result = await pool.query(
+      `SELECT
+         COUNT(*) AS total_tiles,
+         COUNT(DISTINCT owner_id) FILTER (WHERE owner_id IS NOT NULL) AS occupied_tiles,
+         COUNT(*) FILTER (WHERE owner_id IS NULL) AS unclaimed_tiles,
+         COUNT(DISTINCT owner_id) AS total_owners
+       FROM tiles`
+    );
+    return result.rows[0];
   }
 };
 
