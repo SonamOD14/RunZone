@@ -18,3 +18,6 @@ export const getMyTiles = () => API.get('/territory/mine')
 export const getUserTiles = (id) => API.get(`/territory/user/${id}`)
 export const getTileInfo = (tile_x, tile_y, zoom) =>
   API.get(`/territory/tile?tile_x=${tile_x}&tile_y=${tile_y}&zoom=${zoom}`)
+export const getMyHistory = () => API.get('/territory/history')
+export const abandonTile = (tile_x, tile_y, zoom) =>
+  API.delete('/territory/abandon', { data: { tile_x, tile_y, zoom } })
