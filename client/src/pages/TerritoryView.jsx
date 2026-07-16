@@ -298,6 +298,7 @@ function TerritoryView() {
                 attribution='&copy; <a href="https://carto.com/">CARTO</a>'
               />
 
+
               <MapClickHandler onClick={handleMapClick} />
 
               {myTilesList.map((tile, i) => (
