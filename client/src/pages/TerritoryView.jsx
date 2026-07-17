@@ -233,6 +233,7 @@ function TerritoryView() {
               />
             </div>
           </div>
+          
 
           {/* Decay warning */}
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,136,0,0.08)', border: '1px solid rgba(255,136,0,0.2)' }}>
