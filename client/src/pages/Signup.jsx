@@ -177,7 +177,6 @@ function Signup() {
           Already an Operative?{' '}
           <Link to="/login" className="font-bold" style={{ color: '#CCFF00' }}>Sign In</Link>
         </p>
-
       </div>
 
       {/* Bottom glow */}
