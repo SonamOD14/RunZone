@@ -83,7 +83,6 @@ function Navbar() {
             )
           }
 
-          
           return (
             <Link key={link.path} to={link.path} className="flex flex-col items-center gap-1 py-1">
               {link.icon(active)}
