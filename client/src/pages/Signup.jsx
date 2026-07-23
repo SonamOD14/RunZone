@@ -178,7 +178,6 @@ function Signup() {
           <Link to="/login" className="font-bold" style={{ color: '#CCFF00' }}>Sign In</Link>
         </p>
       </div>
-      
       {/* Bottom glow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full blur-3xl opacity-15" style={{ background: '#CCFF00' }}/>
     </div>
