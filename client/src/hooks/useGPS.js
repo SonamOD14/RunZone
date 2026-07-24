@@ -31,4 +31,5 @@ function useGPS() {
   return { position, error, permission }
 }
 
+
 export default useGPS
