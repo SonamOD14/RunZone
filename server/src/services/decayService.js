@@ -46,6 +46,7 @@ const DecayService = {
       this.applyDecay();
     }, TWENTY_FOUR_HOURS);
   }
+  
 };
 
 module.exports = DecayService;
