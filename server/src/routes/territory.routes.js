@@ -14,3 +14,4 @@ router.get('/tile', verifyToken, TerritoryController.getTileInfo);
 router.delete('/abandon', verifyToken, TerritoryController.abandonTile);
 
 module.exports = router;
+
