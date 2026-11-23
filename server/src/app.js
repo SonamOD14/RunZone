@@ -30,5 +30,4 @@ app.get('/api/health', (req, res) => {
 // Error handler (always last)
 app.use(errorHandler);
 
-module.exports = app;
-
+module.exports = app
